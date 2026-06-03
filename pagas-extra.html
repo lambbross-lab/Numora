@@ -1,26 +1,23 @@
 <!doctype html>
 <html lang="es">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Calculadora de pagas extra gratis | Prorrata y paga proporcional</title><meta name="description" content="Calcula una estimación de pagas extra prorrateadas o proporcionales según salario mensual y meses devengados.">
-  <link rel="canonical" href="https://www.numora.es/pagas-extra.html"><link rel="stylesheet" href="styles.css">
-  <meta name="theme-color" content="#0f172a"><meta property="og:title" content="Calculadora de pagas extra gratis | Prorrata y paga proporcional"><meta property="og:description" content="Calcula una estimación de pagas extra prorrateadas o proporcionales según salario mensual y meses devengados."><meta property="og:type" content="website"><meta property="og:url" content="https://www.numora.es/pagas-extra.html">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Calculadora de pagas extra gratis | Numora</title>
+  <meta name="description" content="Estima pagas extra completas, proporcionales o prorrateadas.">
+  <link rel="canonical" href="https://www.numora.es/pagas-extra.html">
+  <link rel="stylesheet" href="styles.css">
+  <meta name="theme-color" content="#0f172a">
+  <meta property="og:title" content="Calculadora de pagas extra gratis | Numora">
+  <meta property="og:description" content="Estima pagas extra completas, proporcionales o prorrateadas.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.numora.es/pagas-extra.html">
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('consent','default',{'ad_storage':'denied','analytics_storage':'denied','ad_user_data':'denied','ad_personalization':'denied'});
   </script>
-  <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Calculadora de pagas extra", "applicationCategory": "BusinessApplication", "operatingSystem": "Web", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"}, "description": "Calcula una estimación de pagas extra prorrateadas o proporcionales según salario mensual y meses devengados.", "url": "https://www.numora.es/pagas-extra.html"}</script><script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "¿El resultado es oficial?", "acceptedAnswer": {"@type": "Answer", "text": "No. Es una estimación orientativa. La cifra real puede depender del convenio, contrato, bases de cotización y situación personal."}}, {"@type": "Question", "name": "¿Se guardan los datos que introduzco?", "acceptedAnswer": {"@type": "Answer", "text": "No. La operación se realiza en tu navegador."}}, {"@type": "Question", "name": "¿Puedo usarlo para reclamar a una empresa?", "acceptedAnswer": {"@type": "Answer", "text": "Puede servir como primera orientación, pero antes de reclamar conviene revisar documentación y consultar a un profesional."}}]}</script>
-<!-- Numora content spacing fix -->
-<style>
-  .content{margin-top:32px;padding:32px 30px;border-top:none!important}
-  .content h2{margin-bottom:18px}.content h3{margin-top:28px;margin-bottom:12px}
-  .content p{margin-bottom:18px;line-height:1.78}
-  .content ul,.content .check-list{margin-top:12px;margin-bottom:26px;padding-left:1.4rem}
-  .content li{margin-bottom:10px;line-height:1.7}.content li strong{color:var(--ink)}
-  .calculator-layout{margin-bottom:32px}.tool-page>.ad-slot{margin-top:28px;margin-bottom:28px}
-  @media(max-width:640px){.content{margin-top:24px;padding:24px 20px}.content p,.content li{line-height:1.68}.calculator-layout{margin-bottom:24px}}
-</style>
+  <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Calculadora de pagas extra", "applicationCategory": "BusinessApplication", "operatingSystem": "Web", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"}, "description": "Estima pagas extra completas, proporcionales o prorrateadas.", "url": "https://www.numora.es/pagas-extra.html"}</script>
 </head>
 <body>
 <header class="site-header">
@@ -36,23 +33,17 @@
   </nav>
 </header>
 <main class="tool-page">
-<section class="tool-hero"><div><p class="eyebrow">🎁 Herramienta laboral</p><h1>Calculadora de pagas extra</h1><p class="lead">Estima el importe de una paga extra completa, proporcional o prorrateada según salario y meses devengados. Introduce tus datos y obtén una estimación inmediata.</p></div></section>
+<section class="tool-hero"><div><p class="eyebrow">🎁 Herramienta laboral</p><h1>Calculadora de pagas extra</h1><p class="lead">Estima pagas extra completas, proporcionales o prorrateadas. Introduce tus datos y obtén una estimación inmediata.</p></div></section>
 <section class="calculator-layout"><div class="calc-card"><form class="calculator" data-calc="pagasextra"><label>Salario base mensual (€)<input type="number" name="salary" value="1800" min="0" step="10"></label><label>Número de pagas extra al año<select name="extras"><option value="2" selected>2 pagas extra</option><option value="1">1 paga extra</option><option value="3">3 pagas extra</option></select></label><label>Meses devengados<input type="number" name="months" value="6" min="0" max="12" step="0.5"></label><label>¿Pagas prorrateadas?<select name="prorated"><option value="no" selected>No</option><option value="yes">Sí</option></select></label><button>Calcular pagas extra</button></form><div id="result" class="result" aria-live="polite"></div><p class="microcopy">Cálculo orientativo. No sustituye asesoramiento laboral, fiscal ni jurídico.</p></div><aside class="side-info"><h2>Qué debes saber</h2><p>Los importes laborales dependen de contrato, convenio, bases, pagas, antigüedad y normativa aplicable. Usa esta herramienta como punto de partida.</p><aside class="ad-slot" aria-label="Espacio publicitario"><span>Espacio para AdSense</span><small>lateral / in-content</small></aside></aside></section>
-<section class="section content editorial-content"><h2>Cómo funcionan las pagas extra</h2><p>Las pagas extraordinarias son cantidades adicionales al salario mensual ordinario. En España es habitual tener dos pagas extra al año, aunque el convenio o contrato puede establecer otra distribución. También pueden cobrarse prorrateadas, es decir, repartidas mes a mes dentro de la nómina.</p><p>Esta calculadora estima el importe de una paga extra completa, la parte proporcional según meses devengados y el importe mensual aproximado si las pagas están prorrateadas.</p><h3>Qué significa devengar una paga extra</h3><p>Devengar significa generar el derecho a cobrar una parte de la paga extra con el paso del tiempo trabajado. Si una paga se genera durante seis meses y solo has trabajado tres, normalmente correspondería una parte proporcional.</p><ul class="check-list"><li><strong>Paga completa:</strong> suele aproximarse al salario mensual usado como referencia.</li><li><strong>Paga proporcional:</strong> depende de los meses trabajados o devengados.</li><li><strong>Prorrata:</strong> reparto mensual de las pagas extra a lo largo del año.</li></ul><h3>Ejemplo práctico</h3><p>Si tu salario mensual es de 1.800 € y tienes dos pagas extra, cada paga completa puede aproximarse a 1.800 €. Si has generado 6 meses sobre un periodo anual, la herramienta estima la parte proporcional correspondiente.</p><p>El cálculo puede variar si el convenio incluye complementos, devengo semestral, anual o reglas específicas.</p></section>
+<section class="section content editorial-content"><h2>Calculadora de pagas extra: qué debes saber</h2><p>Las pagas extraordinarias pueden cobrarse en fechas concretas o prorrateadas mes a mes. Esta herramienta estima importes proporcionales.</p><h3>Cómo usar esta herramienta</h3><p>Introduce datos aproximados y revisa el desglose. Si el resultado se aleja mucho de lo esperado, revisa nóminas, contrato, convenio y fechas exactas.</p><h3>Resultado orientativo</h3><p>Numora no es una herramienta oficial. Para decisiones importantes conviene contrastar la información con fuentes oficiales o asesoramiento profesional.</p></section>
 <aside class="ad-slot" aria-label="Espacio publicitario"><span>Espacio para AdSense</span><small>final calculadora</small></aside>
-<section class="related-tools">
-  <div class="related-card">
-    <p class="eyebrow">También puede interesarte</p>
-    <h2>Calculadoras relacionadas</h2>
-    <div class="related-grid"><a href="nomina.html"><strong>Calculadora de salario neto</strong><span>Neto mensual desde bruto, IRPF y cotización.</span></a><a href="finiquito.html"><strong>Calculadora de finiquito</strong><span>Salario pendiente, vacaciones y pagas extra.</span></a><a href="salario-hora.html"><strong>Calculadora de salario por hora</strong><span>Valor aproximado de una hora de trabajo.</span></a></div>
-  </div>
-</section>
-<section class="section faq"><h2>Preguntas frecuentes</h2><details><summary>¿El resultado es oficial?</summary><p>No. Es una estimación orientativa. La cifra real puede depender del convenio, contrato, bases de cotización y situación personal.</p></details><details><summary>¿Se guardan los datos que introduzco?</summary><p>No. La operación se realiza en tu navegador.</p></details><details><summary>¿Puedo usarlo para reclamar a una empresa?</summary><p>Puede servir como primera orientación, pero antes de reclamar conviene revisar documentación y consultar a un profesional.</p></details></section>
+<section class="related-tools"><div class="related-card"><p class="eyebrow">También puede interesarte</p><h2>Calculadoras relacionadas</h2><div class="related-grid"><a href="nomina.html"><strong>Calculadora de salario neto</strong><span>Estima el neto mensual desde el bruto anual y número de pagas.</span></a><a href="finiquito.html"><strong>Calculadora de finiquito</strong><span>Calcula salario pendiente, vacaciones no disfrutadas y pagas extra proporcionales.</span></a><a href="salario-hora.html"><strong>Calculadora de salario por hora</strong><span>Calcula cuánto cobras por hora según salario y jornada semanal.</span></a></div></div></section>
+<section class="section faq"><h2>Preguntas frecuentes</h2><details><summary>¿El resultado es oficial?</summary><p>No. Es una estimación orientativa.</p></details><details><summary>¿Se guardan los datos?</summary><p>No. El cálculo se realiza en el navegador.</p></details><details><summary>¿Sirve para reclamar?</summary><p>Puede servir como primera orientación, pero conviene revisar documentación y consultar a un profesional.</p></details></section>
 </main>
 <footer class="footer">
   <div>
     <strong>Numora</strong>
-    <p>Herramientas gratuitas para calcular, comparar y decidir mejor. Resultados orientativos, sin sustituir asesoramiento profesional.</p>
+    <p>Herramientas laborales gratuitas para calcular, comparar y decidir mejor. Resultados orientativos, sin sustituir asesoramiento profesional.</p>
   </div>
   <nav aria-label="Legal">
     <a href="aviso-legal.html">Aviso legal</a>
@@ -72,4 +63,5 @@
   </div>
 </div>
 <script src="script.js" defer></script>
-</body></html>
+</body>
+</html>
