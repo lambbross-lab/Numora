@@ -1,21 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="420" viewBox="0 0 900 420" role="img" aria-labelledby="title desc">
-  <title id="title">Edad de perro en años humanos</title>
-  <desc id="desc">Ilustración de una tarjeta de mascota con edad de perro y años humanos.</desc>
-  <rect width="900" height="420" rx="28" fill="#f3f7ff"/>
-  <circle cx="140" cy="310" r="82" fill="#dff5ef"/>
-  <circle cx="765" cy="92" r="70" fill="#e8ddff"/>
-  <circle cx="720" cy="210" r="28" fill="#b8eadf"/>
-  <rect x="112" y="96" width="215" height="146" rx="22" fill="#ffffff" stroke="#cbd8eb" stroke-width="4"/>
-  <circle cx="184" cy="170" r="36" fill="#8ee6cf"/>
-  <circle cx="172" cy="160" r="8" fill="#0f172a"/>
-  <circle cx="197" cy="160" r="8" fill="#0f172a"/>
-  <path d="M171 187c18 16 32 16 50 0" fill="none" stroke="#0f172a" stroke-width="7" stroke-linecap="round"/>
-  <path d="M150 130c20-28 45-28 65 0" fill="none" stroke="#0f172a" stroke-width="9" stroke-linecap="round"/>
-  <rect x="410" y="118" width="335" height="180" rx="24" fill="#ffffff" stroke="#cbd8eb" stroke-width="4"/>
-  <text x="452" y="170" font-family="Arial, sans-serif" font-size="42" font-weight="700" fill="#06122c">Edad perro</text>
-  <text x="452" y="215" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#58708f">Años humanos</text>
-  <rect x="452" y="246" width="164" height="12" rx="6" fill="#6d42ff"/>
-  <rect x="452" y="278" width="112" height="12" rx="6" fill="#cbd8eb"/>
-  <text x="640" y="262" font-family="Arial, sans-serif" font-size="48" font-weight="800" fill="#009f7f">39</text>
-  <text x="704" y="262" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#58708f">años</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" role="img" aria-labelledby="title desc">
+<title>edad de perro</title>
+<desc>Icono simple para edad de perro</desc>
+<rect width="800" height="450" rx="48" fill="#f3f6ff"/>
+<circle cx="160" cy="120" r="76" fill="#6d38f5" opacity=".12"/>
+<circle cx="655" cy="95" r="54" fill="#ffd166" opacity=".45"/>
+<circle cx="690" cy="350" r="86" fill="#6d38f5" opacity=".08"/>
+<rect x="260" y="115" width="280" height="220" rx="34" fill="#fff" stroke="#d9e3f2" stroke-width="6"/>
+<text x="400" y="250" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="94" font-weight="800" fill="#6d38f5">🐾</text>
 </svg>
