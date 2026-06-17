@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Calculadora de media ponderada de notas | Numora</title>
+  <meta name="description" content="Calcula la media ponderada de tus notas con porcentajes o pesos. Añade asignaturas, comprueba si los pesos suman 100% y obtén una estimación clara.">
+  <link rel="canonical" href="https://www.numora.es/calculadora-media-ponderada.html">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <meta name="theme-color" content="#0f172a">
+  <meta property="og:title" content="Calculadora de media ponderada de notas | Numora">
+  <meta property="og:description" content="Calcula la media ponderada de tus notas con porcentajes o pesos. Añade asignaturas, comprueba si los pesos suman 100% y obtén una estimación clara.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.numora.es/calculadora-media-ponderada.html">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Calculadora de media ponderada de notas","applicationCategory":"EducationalApplication","operatingSystem":"Web","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"description":"Calcula la media ponderada de notas a partir de cada nota y su peso o porcentaje.","url":"https://www.numora.es/calculadora-media-ponderada.html"}</script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"¿Cómo se calcula una media ponderada de notas?","acceptedAnswer":{"@type":"Answer","text":"Se multiplica cada nota por su peso, se suman esos resultados y se divide entre el total de pesos utilizados."}},{"@type":"Question","name":"¿Los pesos tienen que sumar 100%?","acceptedAnswer":{"@type":"Answer","text":"Si usas porcentajes, lo normal es que sumen 100%. La calculadora avisa si no llegan o se pasan de 100%."}},{"@type":"Question","name":"¿La media ponderada es siempre la nota oficial?","acceptedAnswer":{"@type":"Answer","text":"No necesariamente. El resultado es orientativo y depende de los criterios oficiales de cada curso, centro o examen."}}]}</script>
+<!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-TCS77294GX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('consent','default',{
+      'ad_storage':'denied',
+      'analytics_storage':'denied',
+      'ad_user_data':'denied',
+      'ad_personalization':'denied'
+    });
+    gtag('js', new Date());
+    gtag('config', 'G-TCS77294GX');
+  </script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2935707492965748" crossorigin="anonymous"></script>
+</head>
+<body>
+<header class="site-header">
+  <a class="brand" href="index.html" aria-label="Inicio"><span class="brand-mark">N</span><span>Numora</span></a>
+  <button class="menu-toggle" aria-expanded="false" aria-controls="site-nav">Menú</button>
+  <nav id="site-nav" class="site-nav" aria-label="Principal">
+    <a href="index.html">Inicio</a>
+    <a href="index.html#calculadoras">Calculadoras</a>
+    <a href="blog.html">Blog</a>
+  </nav>
+</header>
+<main class="tool-page">
+<section class="tool-hero"><div><p class="eyebrow">Educación</p><h1>Calculadora de media ponderada de notas</h1><p class="lead">Calcula tu media final introduciendo cada nota y su peso en porcentaje. La herramienta comprueba si los pesos suman 100% y muestra una estimación inmediata.</p></div></section>
+<section class="calculator-layout"><div class="calc-card"><form class="calculator" data-calc="mediaponderada"><div class="weighted-rows" data-weighted-rows><div class="weighted-row" data-weighted-row><label>Nota<input type="number" name="nota[]" value="8" min="0" max="10" step="0.01"></label><label>Peso / porcentaje<input type="number" name="peso[]" value="40" min="0" max="100" step="0.01"></label><button type="button" class="btn secondary" data-remove-row>Quitar</button></div><div class="weighted-row" data-weighted-row><label>Nota<input type="number" name="nota[]" value="7" min="0" max="10" step="0.01"></label><label>Peso / porcentaje<input type="number" name="peso[]" value="30" min="0" max="100" step="0.01"></label><button type="button" class="btn secondary" data-remove-row>Quitar</button></div><div class="weighted-row" data-weighted-row><label>Nota<input type="number" name="nota[]" value="9" min="0" max="10" step="0.01"></label><label>Peso / porcentaje<input type="number" name="peso[]" value="30" min="0" max="100" step="0.01"></label><button type="button" class="btn secondary" data-remove-row>Quitar</button></div></div><div class="weighted-actions"><button type="button" class="btn secondary" data-add-row>Añadir nota</button></div><button>Calcular media ponderada</button></form><div id="result" class="result" aria-live="polite"></div><p class="microcopy">Resultado orientativo. La nota oficial depende de los criterios de evaluación de cada curso, centro o examen.</p></div><aside class="side-info"><h2>Qué debes saber</h2><p>La media ponderada da más importancia a las partes con mayor peso. Si trabajas con porcentajes, lo habitual es que todos los pesos sumen 100%.</p><aside class="ad-slot" aria-label="Espacio publicitario">
+  <ins class="adsbygoogle"
+       style="display:block"
+       data-ad-client="ca-pub-2935707492965748"
+       data-ad-slot="SLOT_LATERAL"
+       data-ad-format="auto"
+       data-full-width-responsive="true"></ins>
+  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+</aside></aside></section>
+<section class="section content editorial-content calculator-info-block">
+  <h2>Media ponderada: qué debes saber</h2>
+  <h3>Fórmula</h3><p>La fórmula es: suma de cada nota multiplicada por su peso, dividida entre la suma total de pesos. Si los pesos son porcentajes, deberían sumar 100%.</p>
+  <h3>Cuándo usarla</h3><p>Sirve para calcular notas finales cuando cada examen, trabajo, práctica o evaluación tiene una importancia distinta. También puede usarse para asignaturas con trimestres ponderados.</p>
+  <h3>Ejemplo rápido</h3><p>Si tienes un 8 con peso 40%, un 7 con peso 30% y un 9 con peso 30%, la media ponderada es 8,0. El cálculo sería 8 × 40 + 7 × 30 + 9 × 30, dividido entre 100.</p>
+  <h3>Pesos incompletos</h3><p>Si los pesos no suman 100%, la calculadora muestra una advertencia. Puede servir para revisar si falta una parte de la evaluación o si se ha introducido un porcentaje incorrecto.</p>
+</section>
+<aside class="ad-slot" aria-label="Espacio publicitario">
+  <ins class="adsbygoogle"
+       style="display:block"
+       data-ad-client="ca-pub-2935707492965748"
+       data-ad-slot="SLOT_FINAL"
+       data-ad-format="auto"
+       data-full-width-responsive="true"></ins>
+  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+</aside>
+<section class="related-tools">
+  <div class="related-card">
+    <p class="eyebrow">También puede interesarte</p>
+    <h2>Guías y calculadoras relacionadas</h2>
+    <div class="related-grid">
+      <a href="blog-media-ponderada-notas.html"><span class="related-icon">%</span><strong>Cómo calcular una media ponderada</strong><span>Guía con fórmula, ejemplo y errores frecuentes.</span><span class="go">Leer guía →</span></a>
+      <a href="educacion-nota-pau.html"><span class="related-icon">PAU</span><strong>Calculadora de nota PAU</strong><span>Calcula acceso y admisión universitaria.</span><span class="go">Ir a la calculadora →</span></a>
+      <a href="todas-las-calculadoras.html#educacion"><span class="related-icon">N</span><strong>Calculadoras de educación</strong><span>Índice de herramientas académicas.</span><span class="go">Ver categoría →</span></a>
+    </div>
+  </div>
+</section>
+<section class="section faq">
+  <p class="eyebrow">Dudas habituales</p>
+  <h2>Preguntas frecuentes</h2>
+  <details><summary>¿Cómo se calcula una media ponderada de notas?</summary><p>Multiplica cada nota por su peso, suma los resultados y divide entre el total de pesos utilizados.</p></details>
+  <details><summary>¿Los pesos tienen que sumar 100%?</summary><p>Si estás usando porcentajes, sí: lo normal es que sumen 100%. La calculadora avisa si el total no coincide.</p></details>
+  <details><summary>¿Qué pasa si los pesos suman menos de 100%?</summary><p>Puede que falte una parte de la evaluación o que aún no tengas todas las notas. El resultado puede servir como estimación parcial.</p></details>
+  <details><summary>¿Puedo usar pesos que no sean porcentajes?</summary><p>Sí, matemáticamente puedes usar puntos o créditos, pero si quieres comprobar porcentajes el total debería ser 100.</p></details>
+  <details><summary>¿La media ponderada es siempre la nota oficial?</summary><p>No. El resultado es orientativo y depende de los criterios oficiales de cada curso, centro o examen.</p></details>
+</section>
+</main>
+<footer class="footer">
+  <div>
+    <strong>Numora</strong>
+    <p>Herramientas prácticas para trabajo, educación, mascotas y vida diaria. Resultados orientativos, sin sustituir asesoramiento profesional.</p>
+  </div>
+  <nav aria-label="Legal">
+    <a href="sobre.html">Sobre</a>
+    <a href="contacto.html">Contacto</a>
+    <a href="faq.html">FAQ</a>
+    <a href="todas-las-calculadoras.html">Todas las calculadoras</a>
+    <a href="aviso-legal.html">Aviso legal</a>
+    <a href="privacidad.html">Privacidad</a>
+    <a href="cookies.html">Cookies</a>
+  </nav>
+</footer>
+<div id="cookie-banner" class="cookie-banner" hidden>
+  <div>
+    <strong>Privacidad y anuncios</strong>
+    <p>Usamos cookies técnicas para recordar tu elección. Si aceptas, Google AdSense podrá usar cookies o identificadores para mostrar anuncios, medir su rendimiento y personalizar la publicidad cuando corresponda. Puedes aceptar o rechazar.</p>
+  </div>
+  <div class="cookie-actions">
+    <button data-consent="reject" class="btn secondary">Rechazar</button>
+    <button data-consent="accept" class="btn primary">Aceptar</button>
+  </div>
+</div>
+<script src="script.js" defer></script>
+</body>
+</html>

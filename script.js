@@ -100,6 +100,35 @@ document.addEventListener('DOMContentLoaded', () => {
       output(form, `<div class="big">${principal}</div><div class="result-grid"><div><small>Nota de acceso</small>${acceso.toFixed(3)} / 10</div><div><small>Aportación optativas</small>${extra.toFixed(3)}</div><div><small>Estado</small>${estado}</div></div><p class="microcopy">${nota}</p>`);
     }
 
+    if (t === 'mediaponderada') {
+      const fd = new FormData(form), notas = fd.getAll('nota[]').map(Number), pesos = fd.getAll('peso[]').map(Number);
+      let totalPeso = 0, sumaPonderada = 0;
+      notas.forEach((nota, i) => {
+        const peso = Number.isFinite(pesos[i]) ? pesos[i] : 0;
+        if (Number.isFinite(nota) && Number.isFinite(peso) && peso > 0) {
+          totalPeso += peso;
+          sumaPonderada += nota * peso;
+        }
+      });
+      const media = totalPeso ? sumaPonderada / totalPeso : 0, diferencia = totalPeso - 100;
+      const aviso = Math.abs(diferencia) < .01 ? 'Los pesos suman 100%.' : diferencia < 0 ? `Falta ${(100 - totalPeso).toFixed(2)}% para llegar a 100%.` : `Los pesos superan 100% en ${(totalPeso - 100).toFixed(2)}%.`;
+      output(form, `<div class="big">${media.toFixed(2)} / 10</div><div class="result-grid"><div><small>Media ponderada</small>${media.toFixed(2)}</div><div><small>Peso total usado</small>${totalPeso.toFixed(2)}%</div><div><small>Revisión de pesos</small>${aviso}</div></div><p class="microcopy">Resultado orientativo. Depende de los criterios oficiales de cada curso, centro o examen.</p>`);
+    }
+
+    if (t === 'costeperro') {
+      const fd = new FormData(form), size = fd.get('size') || 'mediano', food = num(form, 'food'), vetAnnual = num(form, 'vet'), insurance = num(form, 'insurance'), grooming = num(form, 'grooming'), other = num(form, 'other');
+      const vetMonth = vetAnnual / 12, monthly = food + vetMonth + insurance + grooming + other, annual = monthly * 12;
+      output(form, `<div class="big">${fmt(monthly)} / mes</div><div class="result-grid"><div><small>Coste mensual</small>${fmt(monthly)}</div><div><small>Coste anual</small>${fmt(annual)}</div><div><small>Tamaño</small>${size}</div><div><small>Alimentación</small>${fmt(food)}</div><div><small>Veterinario mensualizado</small>${fmt(vetMonth)}</div><div><small>Seguro y extras</small>${fmt(insurance + grooming + other)}</div></div><p class="microcopy">Estimación orientativa. Los costes varían por ubicación, raza, edad, salud y circunstancias.</p>`);
+    }
+
+    if (t === 'edadperro') {
+      const fd = new FormData(form), age = Math.max(0, num(form, 'age')), size = fd.get('size') || 'mediano';
+      const factor = size === 'pequeño' ? 4 : size === 'grande' ? 6 : 5;
+      const human = age <= 1 ? age * 15 : age <= 2 ? 15 + (age - 1) * 9 : 24 + (age - 2) * factor;
+      const stage = age < 1 ? 'Cachorro' : age < 3 ? 'Joven' : age < 8 ? 'Adulto' : 'Senior';
+      output(form, `<div class="big">${human.toFixed(1)} años humanos</div><div class="result-grid"><div><small>Edad del perro</small>${age.toFixed(1)} años</div><div><small>Tamaño</small>${size}</div><div><small>Etapa orientativa</small>${stage}</div><div><small>Ritmo desde 2 años</small>${factor} años humanos/año</div></div><p class="microcopy">Estimación orientativa. La edad biológica puede variar por raza, tamaño, salud, alimentación y circunstancias individuales.</p>`);
+    }
+
     if (t === 'antiguedad') {
       const fd = new FormData(form), start = new Date(fd.get('start')), end = new Date(fd.get('end'));
       if (isNaN(start) || isNaN(end) || end < start) {
@@ -117,6 +146,31 @@ document.addEventListener('DOMContentLoaded', () => {
         const total = Math.ceil((end - start) / 86400000) + 1;
         output(form, `<div class="big">${y} años, ${m} meses y ${d} días</div><div class="result-grid"><div><small>Años</small>${y}</div><div><small>Meses</small>${m}</div><div><small>Días totales</small>${total}</div></div>`);
       }
+    }
+  }));
+
+  document.querySelectorAll('[data-add-row]').forEach(btn => btn.addEventListener('click', () => {
+    const form = btn.closest('form'), rows = form?.querySelector('[data-weighted-rows]');
+    if (!rows) return;
+    const source = rows.querySelector('[data-weighted-row]');
+    if (!source) return;
+    const row = source.cloneNode(true);
+    row.querySelectorAll('input').forEach(input => {
+      input.value = '';
+    });
+    rows.appendChild(row);
+  }));
+
+  document.querySelectorAll('[data-weighted-rows]').forEach(rows => rows.addEventListener('click', e => {
+    const btn = e.target.closest('[data-remove-row]');
+    if (!btn) return;
+    const row = btn.closest('[data-weighted-row]'), allRows = rows.querySelectorAll('[data-weighted-row]');
+    if (allRows.length > 1) {
+      row.remove();
+    } else {
+      row.querySelectorAll('input').forEach(input => {
+        input.value = '';
+      });
     }
   }));
 
