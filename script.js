@@ -87,6 +87,38 @@ document.addEventListener('DOMContentLoaded', () => {
       output(form, `<div class="big">${fmt(pro === 'yes' ? month : prop)}</div><div class="result-grid"><div><small>Paga completa</small>${fmt(sal)}</div><div><small>Proporcional</small>${fmt(prop)}</div><div><small>Prorrata mensual</small>${fmt(month)}</div></div>`);
     }
 
+    if (t === 'interescompuesto') {
+      const fd = new FormData(form);
+      const initial = Math.max(0, num(form, 'initial'));
+      const contribution = Math.max(0, num(form, 'contribution'));
+      const frequency = parseInt(fd.get('frequency') || '12', 10);
+      const compound = parseInt(fd.get('compound') || '12', 10);
+      const annualRate = num(form, 'rate') / 100;
+      const years = Math.max(1, Math.min(60, Math.round(num(form, 'years'))));
+      const months = years * 12;
+      const monthlyRate = Math.pow(1 + annualRate / compound, compound / 12) - 1;
+      const contributionEveryMonths = Math.max(1, Math.round(12 / frequency));
+      let balance = initial;
+      let contributed = initial;
+      const yearly = [];
+      for (let month = 1; month <= months; month++) {
+        if ((month - 1) % contributionEveryMonths === 0) {
+          balance += contribution;
+          contributed += contribution;
+        }
+        balance *= (1 + monthlyRate);
+        if (month % 12 === 0) {
+          yearly.push({ year: month / 12, balance, contributed });
+        }
+      }
+      const interest = balance - contributed;
+      const maxBalance = Math.max(...yearly.map(y => y.balance), 1);
+      const bars = yearly.slice(-10).map(y => `<div class="growth-bar-row"><span>Año ${y.year}</span><div class="growth-bar"><i style="width:${Math.max(3, y.balance / maxBalance * 100).toFixed(1)}%"></i></div><strong>${fmt(y.balance)}</strong></div>`).join('');
+      const table = yearly.map(y => `<tr><td>${y.year}</td><td>${fmt(y.contributed)}</td><td>${fmt(y.balance - y.contributed)}</td><td>${fmt(y.balance)}</td></tr>`).join('');
+      output(form, `<div class="big">${fmt(balance)}</div><div class="result-grid"><div><small>Capital aportado</small>${fmt(contributed)}</div><div><small>Intereses estimados</small>${fmt(interest)}</div><div><small>Plazo</small>${years} años</div></div><div class="growth-bars">${bars}</div><details class="result-table"><summary>Ver tabla año a año</summary><div class="table-wrap"><table><thead><tr><th>Año</th><th>Aportado</th><th>Intereses</th><th>Valor final</th></tr></thead><tbody>${table}</tbody></table></div></details><p class="microcopy">Simulación bruta y orientativa. No incluye impuestos, comisiones, inflación ni variaciones reales de mercado.</p>`);
+    }
+
+
     if (t === 'notapau') {
       const bach = num(form, 'bachillerato'), obl = num(form, 'obligatoria'), acceso = bach * .6 + obl * .4;
       const aportaciones = [1, 2, 3, 4].map(i => {
