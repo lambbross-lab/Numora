@@ -1322,27 +1322,30 @@
   box-shadow: var(--shadow-sm);
   padding: 32px;
 }
+.featured-shortcuts {
+  padding: 22px;
+}
 .explore-tools .explore-copy p:not(.eyebrow) {
   color: var(--muted);
 }
 .featured-shortcuts h3 {
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 .shortcut-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
 }
 .shortcut-card {
-  min-height: 142px;
+  min-height: 108px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  padding: 14px 10px;
+  gap: 6px;
+  padding: 12px 8px;
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: 16px;
   background: #fff;
   text-decoration: none;
   text-align: center;
@@ -1353,22 +1356,22 @@
   border-color: #d7d1ff;
 }
 .shortcut-icon {
-  width: 48px;
-  height: 48px;
+  width: 42px;
+  height: 42px;
   display: grid;
   place-items: center;
   border-radius: 999px;
-  font-size: 1.35rem;
+  font-size: 1.2rem;
   background: #f4f1ff;
 }
 .shortcut-card strong {
-  font-size: .92rem;
-  line-height: 1.12;
+  font-size: .86rem;
+  line-height: 1.1;
 }
 .shortcut-card span:not(.shortcut-icon) {
   color: var(--muted);
-  font-size: .78rem;
-  line-height: 1.25;
+  font-size: .72rem;
+  line-height: 1.22;
 }
 .shortcut-card.finance .shortcut-icon { background:#e7faef; }
 .shortcut-card.education .shortcut-icon { background:#fff4ce; }
@@ -1381,9 +1384,12 @@
 
 @media (max-width: 980px) {
   .explore-tools { grid-template-columns: 1fr; }
-  .shortcut-grid { grid-template-columns: repeat(2, 1fr); }
+  .shortcut-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+@media (max-width: 720px) {
+  .shortcut-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 520px) {
   .shortcut-grid { grid-template-columns: 1fr; }
-  .shortcut-card { min-height: 112px; }
+  .shortcut-card { min-height: 104px; }
 }
