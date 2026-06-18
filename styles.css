@@ -1091,3 +1091,34 @@
     padding: 14px;
   }
 }
+
+
+/* Numora homepage category alignment fix */
+.categories-section.section {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.categories-section .section-head,
+.categories-section .category-grid {
+  width: 100%;
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.categories-section .category-card {
+  padding: 24px;
+  min-height: 230px;
+}
+
+@media (max-width: 720px) {
+  .categories-section.section {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .categories-section .category-card {
+    min-height: 0;
+  }
+}
