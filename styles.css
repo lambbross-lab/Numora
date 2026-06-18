@@ -1393,3 +1393,39 @@
   .shortcut-grid { grid-template-columns: 1fr; }
   .shortcut-card { min-height: 104px; }
 }
+
+
+/* Numora: width consistency for two-column utility sections */
+@media (min-width: 981px) {
+  .section.two-col,
+  .section.explore-tools {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .section.explore-tools {
+    width: 100% !important;
+  }
+
+  .explore-tools .explore-copy,
+  .featured-shortcuts {
+    min-height: 360px;
+  }
+}
+
+/* Keep the featured calculator cards compact while the outer block uses full site width */
+.featured-shortcuts .shortcut-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.featured-shortcuts .shortcut-card {
+  min-height: 104px;
+}
+
+@media (max-width: 980px) {
+  .section.two-col,
+  .section.explore-tools {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}
