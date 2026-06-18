@@ -1122,3 +1122,50 @@
     min-height: 0;
   }
 }
+
+
+/* Numora: guía relacionada separada y contenedores con más contraste */
+.tool-page .related-card,
+.tool-page .guide-related-card,
+.tool-page .faq {
+  background: linear-gradient(135deg, #ffffff 0%, #f3f7ff 100%) !important;
+}
+
+.tool-page .related-card {
+  padding: 28px !important;
+}
+
+.tool-page .related-card > .eyebrow,
+.tool-page .related-card > h2 {
+  text-align: center;
+}
+
+.guide-related {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 0 34px !important;
+  padding: 0 !important;
+}
+
+.guide-related-card {
+  width: 100% !important;
+  background: linear-gradient(135deg, #ffffff 0%, #eef4ff 100%);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 28px 30px;
+}
+
+.guide-related-card h2 {
+  font-size: clamp(1.35rem, 2.5vw, 1.75rem);
+  margin-bottom: 12px;
+}
+
+.guide-related-card p:not(.eyebrow) {
+  color: var(--muted);
+  margin: 0 0 18px;
+}
+
+.tool-page .faq {
+  margin-top: 0 !important;
+}
