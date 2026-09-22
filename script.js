@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (t === 'despido') {
-      const s = num(form, 'salary'), y = num(form, 'years'), days = num(form, 'type'), day = s / 30;
+      const s = num(form, 'salary'), y = num(form, 'years'), days = num(form, 'type'), day = s / 365;
       output(form, `<div class="big">${fmt(day * days * y)}</div><div class="result-grid"><div><small>Salario día</small>${fmt(day)}</div><div><small>Días/año</small>${days}</div><div><small>Antigüedad</small>${y} años</div></div>`);
     }
 
