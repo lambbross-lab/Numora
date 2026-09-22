@@ -233,10 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('cl_consent', ok ? 'accepted' : 'rejected');
       if (window.gtag) {
         gtag('consent', 'update', {
-          ad_storage: ok ? 'granted' : 'denied',
-          analytics_storage: ok ? 'granted' : 'denied',
-          ad_user_data: ok ? 'granted' : 'denied',
-          ad_personalization: ok ? 'granted' : 'denied'
+          analytics_storage: ok ? 'granted' : 'denied'
         });
       }
       hide();
