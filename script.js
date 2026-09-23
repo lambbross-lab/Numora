@@ -181,6 +181,47 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }));
 
+  const poolForm = document.getElementById('pool-form');
+  if (poolForm) {
+    const poolResult = document.getElementById('pool-result');
+    const lengthField = document.getElementById('length-field');
+    const widthField = document.getElementById('width-field');
+    const diameterField = document.getElementById('diameter-field');
+    const poolNumber = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 2 });
+    const calculatePool = e => {
+      if (e) e.preventDefault();
+      const data = new FormData(poolForm);
+      const shape = data.get('shape');
+      const depth = Number(data.get('depth'));
+      const price = Number(data.get('price'));
+      let volume = 0;
+      if (shape === 'round') {
+        const diameter = Number(data.get('diameter'));
+        volume = Math.PI * Math.pow(diameter / 2, 2) * depth;
+      } else {
+        const length = Number(data.get('length'));
+        const width = Number(data.get('width'));
+        volume = length * width * depth * (shape === 'oval' ? 0.785 : 1);
+      }
+      poolResult.classList.add('show');
+      if (!(volume > 0) || price < 0) {
+        poolResult.innerHTML = '<p>Revisa los datos.</p>';
+        return;
+      }
+      poolResult.innerHTML = `<h3>Resultado</h3><p><strong>Volumen:</strong> ${poolNumber.format(volume)} m³</p><p><strong>Capacidad:</strong> ${Math.round(volume * 1000).toLocaleString('es-ES')} L</p><p><strong>Coste de agua estimado:</strong> ${fmt(volume * price)}</p>`;
+    };
+    const updatePoolShape = () => {
+      const round = new FormData(poolForm).get('shape') === 'round';
+      lengthField.hidden = round;
+      widthField.hidden = round;
+      diameterField.hidden = !round;
+      calculatePool();
+    };
+    poolForm.addEventListener('submit', calculatePool);
+    poolForm.elements.namedItem('shape').addEventListener('change', updatePoolShape);
+    updatePoolShape();
+  }
+
   document.querySelectorAll('[data-add-row]').forEach(btn => btn.addEventListener('click', () => {
     const form = btn.closest('form'), rows = form?.querySelector('[data-weighted-rows]');
     if (!rows) return;
