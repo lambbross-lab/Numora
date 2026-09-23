@@ -285,7 +285,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (t === 'nomina') {
       const fd = new FormData(form);
-      const gross = num(form, 'gross'), pays = num(form, 'pays') || 12;
+      const pays = num(form, 'pays') || 12;
+      const grossInput = Math.max(0, num(form, 'gross'));
+      const grossPeriod = fd.get('grossPeriod') || 'annual';
+      const gross = grossPeriod === 'perpay' ? grossInput * pays : grossInput;
       const contract = fd.get('contract') || 'indefinite';
       const civilStatus = fd.get('civilStatus') || 'other';
       const spouseIncome = num(form, 'spouseIncome');
@@ -295,10 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const situation = civilStatus === 'married' && spouseIncome <= 1500
         ? 'two'
         : civilStatus === 'single' && children > 0 && exclusiveChildren ? 'one' : 'three';
-      const socialSecurity = salarySocialSecurity(gross, contract);
-      const withholding = salaryWithholding({
-        gross,
-        socialSecurity,
+      const commonWithholding = {
         situation,
         children,
         childrenUnder3,
@@ -314,21 +314,51 @@ document.addEventListener('DOMContentLoaded', () => {
         childSupport: Math.max(0, num(form, 'childSupport')),
         mortgage: fd.get('mortgage') === 'yes',
         contract
-      });
-      const manualRate = num(form, 'manualIrpf');
-      const useManual = fd.get('irpfMode') === 'manual';
-      const irpfRate = useManual ? Math.max(0, Math.min(60, manualRate)) : withholding.rate;
-      const irpfAnnual = gross * irpfRate / 100;
-      const netAnnual = Math.max(0, gross - socialSecurity - irpfAnnual);
+      };
+      const calculateScenario = annualGross => {
+        const ss = salarySocialSecurity(annualGross, contract);
+        const wh = salaryWithholding({ gross: annualGross, socialSecurity: ss, ...commonWithholding });
+        const manualRate = Math.max(0, Math.min(60, num(form, 'manualIrpf')));
+        const useManual = fd.get('irpfMode') === 'manual';
+        const rate = useManual ? manualRate : wh.rate;
+        const irpf = annualGross * rate / 100;
+        const net = Math.max(0, annualGross - ss - irpf);
+        return { gross: annualGross, socialSecurity: ss, withholding: wh, irpfRate: rate, irpfAnnual: irpf, netAnnual: net, useManual };
+      };
+      const current = calculateScenario(gross);
+      const { socialSecurity, withholding, irpfRate, irpfAnnual, netAnnual, useManual } = current;
       const averageMonth = netAnnual / 12;
       const payGross = gross / pays, payIrpf = irpfAnnual / pays;
       const ordinaryPay = pays === 14 ? payGross - payIrpf - socialSecurity / 12 : netAnnual / 12;
       const extraPay = pays === 14 ? payGross - payIrpf : 0;
+      const ssRate = gross > 0 ? socialSecurity / gross * 100 : 0;
+      const deductionRate = gross > 0 ? (socialSecurity + irpfAnnual) / gross * 100 : 0;
+      const retainedRate = Math.max(0, 100 - deductionRate);
       const familyLabels = { one: '1: monoparental', two: '2: cónyuge con rentas ≤ 1.500 €', three: '3: otras situaciones' };
       const payCards = pays === 14
         ? `<div><small>Nómina ordinaria aprox.</small>${fmt(ordinaryPay)}</div><div><small>Cada paga extra aprox.</small>${fmt(extraPay)}</div>`
         : `<div><small>Neto por paga</small>${fmt(netAnnual / 12)}</div>`;
-      output(form, `<div class="big">${fmt(averageMonth)} / mes de media</div><div class="result-grid"><div><small>Neto anual</small>${fmt(netAnnual)}</div>${payCards}<div><small>IRPF (${irpfRate.toFixed(2)}%)</small>${fmt(irpfAnnual)}</div><div><small>Seguridad Social</small>${fmt(socialSecurity)}</div><div><small>Bruto anual</small>${fmt(gross)}</div></div><p class="microcopy">Situación AEAT aplicada: ${familyLabels[situation]}. ${useManual ? 'Se ha usado el IRPF manual indicado.' : 'IRPF estimado con el algoritmo general de retenciones 2026.'} Las nóminas reales pueden variar por convenio, conceptos no cotizables, retribución irregular, regularizaciones o circunstancias especiales.</p>`);
+
+      const step = gross < 20000 ? 2500 : 5000;
+      const scenarioGrosses = [Math.max(12000, gross - step), gross + step];
+      const scenarioCards = scenarioGrosses.map(value => {
+        const scenario = calculateScenario(value);
+        const perPay = scenario.netAnnual / pays;
+        return `<div><small>Con ${fmt(value)} brutos/año</small><strong>${fmt(perPay)} netos/paga</strong><span>${fmt(scenario.netAnnual)} netos/año · IRPF ${scenario.irpfRate.toFixed(2)}%</span></div>`;
+      }).join('');
+
+      output(form, `<div class="big">${fmt(averageMonth)} / mes de media</div>
+        <div class="result-grid">
+          <div><small>Neto anual</small>${fmt(netAnnual)}</div>
+          ${payCards}
+          <div><small>IRPF (${irpfRate.toFixed(2)}%)</small>${fmt(irpfAnnual)}</div>
+          <div><small>Seguridad Social (${ssRate.toFixed(2)}%)</small>${fmt(socialSecurity)}</div>
+          <div><small>Bruto anual calculado</small>${fmt(gross)}</div>
+          <div><small>Te queda del bruto</small>${retainedRate.toFixed(1)}%</div>
+          <div><small>Deducciones totales</small>${deductionRate.toFixed(1)}%</div>
+        </div>
+        <div class="salary-scenarios"><h3>Si negociaras otro bruto</h3><p>Misma situación personal, contrato y número de pagas.</p><div class="salary-scenario-grid">${scenarioCards}</div></div>
+        <p class="microcopy">Situación AEAT aplicada: ${familyLabels[situation]}. ${grossPeriod === 'perpay' ? `El bruto introducido se ha anualizado multiplicándolo por ${pays} pagas. ` : ''}${useManual ? 'Se ha usado el IRPF manual indicado.' : 'IRPF estimado con el algoritmo general de retenciones 2026.'} Las nóminas reales pueden variar por convenio, conceptos no cotizables, retribución irregular, regularizaciones o circunstancias especiales.</p>`);
     }
 
     if (t === 'reduccion') {
