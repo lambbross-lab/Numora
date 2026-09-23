@@ -443,21 +443,21 @@ document.addEventListener('DOMContentLoaded', () => {
       const second = Math.max(0, Math.min(100, num(form, 'second'))) / 100, units = Math.max(1, Math.round(num(form, 'units')));
       const unitFinal = price * (1 - first) * (1 - second), total = unitFinal * units, saving = (price - unitFinal) * units;
       const effective = price ? (1 - unitFinal / price) * 100 : 0;
-      output(form, `<div class="big">${fmt(total)}</div><div class="result-grid"><div><small>Precio final por unidad</small>${fmt(unitFinal)}</div><div><small>Ahorro total</small>${fmt(saving)}</div><div><small>Descuento efectivo</small>${effective.toFixed(2)}%</div><div><small>Precio original total</small>${fmt(price * units)}</div><div><small>Unidades</small>${units}</div><div><small>Segundo descuento</small>${(second * 100).toFixed(2)}%</div></div><p class="microcopy">Los descuentos sucesivos se aplican uno después del otro; no se suman directamente.</p>`);
+      output(form, `<div class="big">${fmt(total)}</div><div class="result-grid"><div><small>Precio final por unidad</small>${fmt(unitFinal)}</div><div><small>Ahorro total</small>${fmt(saving)}</div><div><small>Descuento efectivo</small>${effective.toLocaleString('es-ES', { maximumFractionDigits: 2 })}%</div><div><small>Precio original total</small>${fmt(price * units)}</div><div><small>Unidades</small>${units}</div><div><small>Segundo descuento</small>${(second * 100).toLocaleString('es-ES', { maximumFractionDigits: 2 })}%</div></div><p class="microcopy">Los descuentos sucesivos se aplican uno después del otro; no se suman directamente.</p>`);
     }
 
     if (t === 'consumoiva') {
       const fd = new FormData(form), amount = Math.max(0, num(form, 'amount')), rate = Math.max(0, num(form, 'rate')) / 100;
       const mode = fd.get('mode') || 'add';
       const base = mode === 'add' ? amount : amount / (1 + rate), total = mode === 'add' ? amount * (1 + rate) : amount, tax = total - base;
-      output(form, `<div class="big">${mode === 'add' ? fmt(total) : fmt(base)}</div><div class="result-grid"><div><small>Base sin IVA</small>${fmt(base)}</div><div><small>IVA</small>${fmt(tax)}</div><div><small>Total con IVA</small>${fmt(total)}</div><div><small>Tipo aplicado</small>${(rate * 100).toFixed(2)}%</div></div><p class="microcopy">Cálculo matemático orientativo. Comprueba el tipo aplicable al producto o servicio concreto.</p>`);
+      output(form, `<div class="big">${mode === 'add' ? fmt(total) : fmt(base)}</div><div class="result-grid"><div><small>Base sin IVA</small>${fmt(base)}</div><div><small>IVA</small>${fmt(tax)}</div><div><small>Total con IVA</small>${fmt(total)}</div><div><small>Tipo aplicado</small>${(rate * 100).toLocaleString('es-ES', { maximumFractionDigits: 2 })}%</div></div><p class="microcopy">Cálculo matemático orientativo. Comprueba el tipo aplicable al producto o servicio concreto.</p>`);
     }
 
     if (t === 'consumovariacion') {
       const oldValue = num(form, 'oldValue'), newValue = num(form, 'newValue'), difference = newValue - oldValue;
       const percent = oldValue !== 0 ? difference / Math.abs(oldValue) * 100 : 0;
       const direction = difference > 0 ? 'Subida' : difference < 0 ? 'Bajada' : 'Sin variación';
-      output(form, `<div class="big">${direction}: ${Math.abs(percent).toFixed(2)}%</div><div class="result-grid"><div><small>Valor anterior</small>${fmt(oldValue)}</div><div><small>Valor nuevo</small>${fmt(newValue)}</div><div><small>Diferencia</small>${fmt(difference)}</div><div><small>Variación relativa</small>${percent.toFixed(2)}%</div></div><p class="microcopy">Si el valor inicial es cero, no existe una variación porcentual comparable y se muestra 0%.</p>`);
+      output(form, `<div class="big">${direction}: ${Math.abs(percent).toLocaleString('es-ES', { maximumFractionDigits: 2 })}%</div><div class="result-grid"><div><small>Valor anterior</small>${fmt(oldValue)}</div><div><small>Valor nuevo</small>${fmt(newValue)}</div><div><small>Diferencia</small>${fmt(difference)}</div><div><small>Variación relativa</small>${percent.toLocaleString('es-ES', { maximumFractionDigits: 2 })}%</div></div><p class="microcopy">Si el valor inicial es cero, no existe una variación porcentual comparable y se muestra 0%.</p>`);
     }
 
     if (t === 'consumooferta') {
