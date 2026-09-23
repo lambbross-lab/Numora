@@ -3,17 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Calculadora de salario neto 2026 | Bruto a neto | Numora</title>
-  <meta name="description" content="Calcula tu salario neto 2026 con bruto anual, pagas, contrato, hijos, cónyuge y situación personal. Estimación de IRPF y Seguridad Social.">
+  <title>Calculadora de sueldo neto 2026 | Salario bruto a neto | Numora</title>
+  <meta name="description" content="Calcula tu sueldo neto 2026 desde el salario bruto anual o por paga. Incluye IRPF, Seguridad Social, 12 o 14 pagas y situación familiar.">
   <link rel="canonical" href="https://www.numora.es/nomina.html">
   <link rel="stylesheet" href="styles.css">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <meta name="theme-color" content="#0f172a">
-  <meta property="og:title" content="Calculadora de salario neto gratis 2026 | Numora">
-  <meta property="og:description" content="Calcula tu salario neto 2026 con pagas, contrato, hijos, cónyuge, IRPF y Seguridad Social.">
+  <meta property="og:title" content="Calculadora de sueldo neto 2026 | Bruto a neto | Numora">
+  <meta property="og:description" content="Convierte salario bruto a sueldo neto con IRPF, Seguridad Social, 12 o 14 pagas y situación familiar.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://www.numora.es/nomina.html">
-  <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Calculadora de salario neto 2026", "applicationCategory": "BusinessApplication", "operatingSystem": "Web", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"}, "description": "Estima el salario neto con IRPF, Seguridad Social, pagas y situación familiar.", "url": "https://www.numora.es/nomina.html"}</script>
+  <script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Calculadora de sueldo neto 2026", "applicationCategory": "BusinessApplication", "operatingSystem": "Web", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"}, "description": "Estima el salario neto con IRPF, Seguridad Social, pagas y situación familiar.", "url": "https://www.numora.es/nomina.html"}</script>
   <script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "¿Por qué mi neto no coincide exactamente?", "acceptedAnswer": {"@type": "Answer", "text": "Porque la nómina real puede incluir complementos, atrasos, variables, embargos, beneficios o ajustes de IRPF."}}, {"@type": "Question", "name": "¿El IRPF lo decide la empresa?", "acceptedAnswer": {"@type": "Answer", "text": "La empresa aplica una retención según la información disponible, pero puede regularizarse durante el año."}}, {"@type": "Question", "name": "¿12 o 14 pagas cambia el salario anual?", "acceptedAnswer": {"@type": "Answer", "text": "No debería cambiar el bruto anual pactado, solo la forma de cobro mensual."}}]}</script>
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Inicio","item":"https://www.numora.es/"},{"@type":"ListItem","position":2,"name":"Calculadoras","item":"https://www.numora.es/todas-las-calculadoras.html"},{"@type":"ListItem","position":3,"name":"Laboral","item":"https://www.numora.es/todas-las-calculadoras.html#laboral"}]}</script>
 <!-- Google tag (gtag.js) -->
@@ -43,10 +43,11 @@
   </nav>
 </header>
 <main class="tool-page">
-<section class="tool-hero"><div><p class="eyebrow">💼 Herramienta laboral</p><h1>Calculadora de salario neto 2026</h1><p class="lead">Estima el neto anual y por paga con la cotización y las circunstancias personales que influyen en la retención de IRPF.</p></div></section>
+<section class="tool-hero"><div><p class="eyebrow">💼 Herramienta laboral</p><h1>Calculadora de sueldo neto 2026: de bruto a neto</h1><p class="lead">Convierte tu salario bruto en sueldo neto anual y por paga con una estimación de IRPF y Seguridad Social adaptada a tu situación personal.</p></div></section>
 <section class="calculator-layout"><div class="calc-card"><form class="calculator" data-calc="nomina">
   <h2 class="calculator-heading">Datos salariales</h2>
-  <label>Salario bruto anual (€)<input type="number" name="gross" value="30000" min="1" step="0.01" required></label>
+  <label>Cómo introduces el salario<select name="grossPeriod"><option value="annual" selected>Bruto anual</option><option value="perpay">Bruto por paga / mes</option></select></label>
+  <label>Salario bruto (€)<input type="number" name="gross" value="30000" min="1" step="0.01" required><small>Si eliges “por paga / mes”, Numora lo multiplica por el número de pagas.</small></label>
   <label>Número de pagas<select name="pays"><option value="12">12 pagas</option><option value="14" selected>14 pagas</option></select></label>
   <label>Tipo de contrato<select name="contract"><option value="indefinite" selected>Indefinido</option><option value="temporary">Temporal de un año o más</option><option value="under-year">Temporal inferior a un año</option></select></label>
   <label>Edad<input type="number" name="age" value="35" min="16" max="100" step="1" required></label>
@@ -77,10 +78,10 @@
   <button>Calcular salario neto</button>
 </form><div id="result" class="result" aria-live="polite"></div><p class="microcopy">Estimación para un trabajador por cuenta ajena del Régimen General en 2026. No sustituye una nómina ni el cálculo oficial de la AEAT.</p></div><aside class="side-info"><h2>Qué hemos incluido</h2><p>Contrato, 12 o 14 pagas, situación familiar, ingresos del cónyuge, descendientes, edad, discapacidad, movilidad geográfica, ascendientes y pagos judiciales.</p><p>La cotización aplica los tipos, la base máxima y la cuota de solidaridad vigentes en 2026.</p></aside></section>
 <section class="section content editorial-content calculator-info-block">
-  <h2>Cómo calcula Numora el salario neto</h2>
+  <h2>Cómo pasar de salario bruto a sueldo neto</h2>
   <h3>Retención de IRPF</h3><p>La estimación automática sigue la escala y las principales variables del algoritmo general de retenciones de la AEAT aplicable desde el 10 de septiembre de 2026. La situación del cónyuge no se usa como un gasto doméstico: sirve para determinar la situación familiar fiscal cuando sus rentas anuales no superan 1.500 €.</p>
   <h3>Seguridad Social</h3><p>Se aplican contingencias comunes, desempleo, formación profesional y mecanismo de equidad intergeneracional. Para retribuciones por encima de la base máxima se añade la aportación del trabajador a la cotización de solidaridad.</p>
-  <h3>12 o 14 pagas</h3><p>El neto anual no cambia solo por repartir el salario en 12 o 14 pagas. En 14 pagas, la estimación separa nóminas ordinarias y extras porque la Seguridad Social suele descontarse en las 12 nóminas ordinarias mediante la prorrata de las pagas extra en la base.</p>
+  <h3>12 o 14 pagas</h3><p>El neto anual no cambia solo por repartir el salario en 12 o 14 pagas. En 14 pagas, la estimación separa nóminas ordinarias y extras porque la Seguridad Social suele descontarse en las 12 nóminas ordinarias mediante la prorrata de las pagas extra en la base.</p><h3>Bruto anual o bruto por paga</h3><p>Puedes introducir directamente el bruto anual o indicar lo que cobras en cada paga. En este segundo caso, Numora multiplica el importe por 12 o 14 según la opción elegida para obtener el bruto anual sobre el que se calculan cotizaciones y retención.</p><h3>Qué significa el resultado</h3><p>Además del neto anual y por paga, Numora muestra cuánto representan el IRPF y la Seguridad Social sobre tu bruto. Esto permite entender qué parte del salario se descuenta y comparar escenarios sin confundir retención de nómina con el resultado final de la declaración de la renta.</p>
   <h3>Fuentes y límites</h3><p>Fuentes: <a href="https://sede.agenciatributaria.gob.es/Sede/ayuda/consultas-informaticas/retenciones-ingresos-cuenta-ayuda-tecnica/calculo-retenciones.html" rel="noopener">AEAT, cálculo de retenciones 2026</a>, <a href="https://www.seg-social.es/wps/portal/wss/internet/Trabajadores/CotizacionRecaudacionTrabajadores/10721/10957/9932/4315" rel="noopener">tipos de cotización</a> y <a href="https://www.boe.es/buscar/act.php?id=BOE-A-2026-7296" rel="noopener">Orden PJC/297/2026</a>. No se incluyen todas las situaciones posibles —por ejemplo, Ceuta y Melilla, relaciones laborales especiales, retribuciones irregulares o regularizaciones durante el año—. Para esos casos usa el cálculo oficial o introduce el IRPF real de tu nómina.</p><p class="article-meta">Metodología revisada: 23 de septiembre de 2026.</p></section>
 <section class="related-tools">
   <div class="related-card">
