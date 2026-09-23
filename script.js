@@ -437,6 +437,60 @@ document.addEventListener('DOMContentLoaded', () => {
       const saving = Math.abs(totalA - totalB);
       output(form, `<div class="big">Conviene ${winner}</div><div class="result-grid"><div><small>Total opción A</small>${fmt(totalA)}</div><div><small>Energía opción A</small>${fmt(energyA)}</div><div><small>Total opción B</small>${fmt(totalB)}</div><div><small>Energía opción B</small>${fmt(energyB)}</div><div><small>Diferencia</small>${fmt(saving)}</div><div><small>Periodo comparado</small>${years} años</div></div><p class="microcopy">Compara compra y electricidad. No incluye mantenimiento, reparaciones, financiación, vida útil ni cambios futuros del precio energético.</p>`);
     }
+
+    if (t === 'consumodescuento') {
+      const price = Math.max(0, num(form, 'price')), first = Math.max(0, Math.min(100, num(form, 'first'))) / 100;
+      const second = Math.max(0, Math.min(100, num(form, 'second'))) / 100, units = Math.max(1, Math.round(num(form, 'units')));
+      const unitFinal = price * (1 - first) * (1 - second), total = unitFinal * units, saving = (price - unitFinal) * units;
+      const effective = price ? (1 - unitFinal / price) * 100 : 0;
+      output(form, `<div class="big">${fmt(total)}</div><div class="result-grid"><div><small>Precio final por unidad</small>${fmt(unitFinal)}</div><div><small>Ahorro total</small>${fmt(saving)}</div><div><small>Descuento efectivo</small>${effective.toFixed(2)}%</div><div><small>Precio original total</small>${fmt(price * units)}</div><div><small>Unidades</small>${units}</div><div><small>Segundo descuento</small>${(second * 100).toFixed(2)}%</div></div><p class="microcopy">Los descuentos sucesivos se aplican uno después del otro; no se suman directamente.</p>`);
+    }
+
+    if (t === 'consumoiva') {
+      const fd = new FormData(form), amount = Math.max(0, num(form, 'amount')), rate = Math.max(0, num(form, 'rate')) / 100;
+      const mode = fd.get('mode') || 'add';
+      const base = mode === 'add' ? amount : amount / (1 + rate), total = mode === 'add' ? amount * (1 + rate) : amount, tax = total - base;
+      output(form, `<div class="big">${mode === 'add' ? fmt(total) : fmt(base)}</div><div class="result-grid"><div><small>Base sin IVA</small>${fmt(base)}</div><div><small>IVA</small>${fmt(tax)}</div><div><small>Total con IVA</small>${fmt(total)}</div><div><small>Tipo aplicado</small>${(rate * 100).toFixed(2)}%</div></div><p class="microcopy">Cálculo matemático orientativo. Comprueba el tipo aplicable al producto o servicio concreto.</p>`);
+    }
+
+    if (t === 'consumovariacion') {
+      const oldValue = num(form, 'oldValue'), newValue = num(form, 'newValue'), difference = newValue - oldValue;
+      const percent = oldValue !== 0 ? difference / Math.abs(oldValue) * 100 : 0;
+      const direction = difference > 0 ? 'Subida' : difference < 0 ? 'Bajada' : 'Sin variación';
+      output(form, `<div class="big">${direction}: ${Math.abs(percent).toFixed(2)}%</div><div class="result-grid"><div><small>Valor anterior</small>${fmt(oldValue)}</div><div><small>Valor nuevo</small>${fmt(newValue)}</div><div><small>Diferencia</small>${fmt(difference)}</div><div><small>Variación relativa</small>${percent.toFixed(2)}%</div></div><p class="microcopy">Si el valor inicial es cero, no existe una variación porcentual comparable y se muestra 0%.</p>`);
+    }
+
+    if (t === 'consumooferta') {
+      const price = Math.max(0, num(form, 'price')), needed = Math.max(1, Math.round(num(form, 'needed')));
+      const take = Math.max(1, Math.round(num(form, 'take'))), pay = Math.max(0, Math.min(take, Math.round(num(form, 'pay'))));
+      const discount = Math.max(0, Math.min(100, num(form, 'discount'))) / 100;
+      const fullPacks = Math.floor(needed / take), remainder = needed % take;
+      const offerCost = (fullPacks * pay + remainder) * price, discountCost = needed * price * (1 - discount);
+      const winner = offerCost < discountCost ? `Lleva ${take} y paga ${pay}` : discountCost < offerCost ? `Descuento del ${(discount * 100).toFixed(0)}%` : 'Ambas ofertas';
+      output(form, `<div class="big">Conviene: ${winner}</div><div class="result-grid"><div><small>Oferta por unidades</small>${fmt(offerCost)}</div><div><small>Oferta por descuento</small>${fmt(discountCost)}</div><div><small>Diferencia</small>${fmt(Math.abs(offerCost - discountCost))}</div><div><small>Unidades necesarias</small>${needed}</div><div><small>Sin oferta</small>${fmt(needed * price)}</div><div><small>Packs completos</small>${fullPacks}</div></div><p class="microcopy">El cálculo supone que las unidades restantes fuera de los packs se pagan a precio normal.</p>`);
+    }
+
+    if (t === 'consumocosteuso') {
+      const purchase = Math.max(0, num(form, 'purchase')), annual = Math.max(0, num(form, 'annual'));
+      const usesMonth = Math.max(0, num(form, 'usesMonth')), years = Math.max(1, num(form, 'years')), resale = Math.max(0, num(form, 'resale'));
+      const totalUses = usesMonth * 12 * years, totalCost = Math.max(0, purchase + annual * years - resale), perUse = totalUses ? totalCost / totalUses : 0;
+      output(form, `<div class="big">${fmt(perUse)} / uso</div><div class="result-grid"><div><small>Coste total</small>${fmt(totalCost)}</div><div><small>Usos totales</small>${totalUses.toFixed(0)}</div><div><small>Compra</small>${fmt(purchase)}</div><div><small>Mantenimiento</small>${fmt(annual * years)}</div><div><small>Valor de reventa</small>${fmt(resale)}</div><div><small>Coste mensual medio</small>${fmt(totalCost / (years * 12))}</div></div><p class="microcopy">No incluye inflación, financiación ni costes imprevistos que no hayas incorporado al mantenimiento.</p>`);
+    }
+
+    if (t === 'consumosuscripcion') {
+      const monthly = Math.max(0, num(form, 'monthly')), annual = Math.max(0, num(form, 'annual'));
+      const setup = Math.max(0, num(form, 'setup')), months = Math.max(1, Math.round(num(form, 'months'))), users = Math.max(1, Math.round(num(form, 'users')));
+      const monthlyTotal = monthly * months + setup, annualCycles = Math.ceil(months / 12), annualTotal = annual * annualCycles + setup;
+      const winner = monthlyTotal <= annualTotal ? 'Plan mensual' : 'Plan anual', best = Math.min(monthlyTotal, annualTotal);
+      output(form, `<div class="big">Conviene ${winner}</div><div class="result-grid"><div><small>Plan mensual</small>${fmt(monthlyTotal)}</div><div><small>Plan anual</small>${fmt(annualTotal)}</div><div><small>Ahorro</small>${fmt(Math.abs(monthlyTotal - annualTotal))}</div><div><small>Coste por usuario/mes</small>${fmt(best / months / users)}</div><div><small>Periodo</small>${months} meses</div><div><small>Usuarios</small>${users}</div></div><p class="microcopy">El plan anual se cobra por ciclos completos; revisa cancelación, renovación y posibles impuestos antes de contratar.</p>`);
+    }
+
+    if (t === 'consumoviaje') {
+      const distance = Math.max(0, num(form, 'distance')), consumption = Math.max(0, num(form, 'consumption'));
+      const fuelPrice = Math.max(0, num(form, 'fuelPrice')), tolls = Math.max(0, num(form, 'tolls')), people = Math.max(1, Math.round(num(form, 'people')));
+      const litres = distance * consumption / 100, fuelCost = litres * fuelPrice, total = fuelCost + tolls;
+      output(form, `<div class="big">${fmt(total)} en total</div><div class="result-grid"><div><small>Combustible</small>${fmt(fuelCost)}</div><div><small>Litros estimados</small>${litres.toFixed(2)} L</div><div><small>Peajes y extras</small>${fmt(tolls)}</div><div><small>Coste por persona</small>${fmt(total / people)}</div><div><small>Coste por 100 km</small>${fmt(distance ? total / distance * 100 : 0)}</div><div><small>Distancia</small>${distance.toFixed(1)} km</div></div><p class="microcopy">Usa la distancia total, incluida la vuelta. El consumo real cambia con tráfico, carga, velocidad, clima y estilo de conducción.</p>`);
+    }
   }));
 
   const poolForm = document.getElementById('pool-form');
