@@ -67,6 +67,12 @@ document.addEventListener('DOMContentLoaded', () => {
     input.addEventListener('blur', () => validateAndNormalize(input));
   });
 
+  const seniorityForm = document.querySelector('form[data-calc="antiguedad"]');
+  if (seniorityForm) {
+    const end = seniorityForm.elements.namedItem('end');
+    if (end && !end.value) end.value = new Date().toISOString().slice(0, 10);
+  }
+
   const vacationForm = document.querySelector('form[data-calc="vacaciones"]');
   if (vacationForm) {
     const start = vacationForm.elements.namedItem('start');
@@ -341,8 +347,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (t === 'baja') {
-      const s = num(form, 'salary'), d = num(form, 'days'), v = num(form, 'vacdays'), req = num(form, 'required'), given = num(form, 'given'), ex = num(form, 'extra'), day = s / 30, a = day * d, b = day * v, disc = day * Math.max(0, req - given);
-      output(form, `<div class="big">${fmt(a + b + ex - disc)}</div><div class="result-grid"><div><small>Salario pendiente</small>${fmt(a)}</div><div><small>Vacaciones</small>${fmt(b)}</div><div><small>Descuento preaviso</small>${fmt(disc)}</div></div><p class="microcopy">Estimación bruta. La baja voluntaria normalmente no genera indemnización.</p>`);
+      const fd = new FormData(form);
+      const s = Math.max(0, num(form, 'salary'));
+      const d = Math.max(0, Math.min(31, num(form, 'days')));
+      const v = Math.max(0, num(form, 'vacdays'));
+      const req = Math.max(0, num(form, 'required'));
+      const given = Math.max(0, num(form, 'given'));
+      const extras = Math.max(0, Math.round(num(form, 'extras')));
+      const extraAmount = Math.max(0, num(form, 'extraAmount'));
+      const extraMonths = Math.max(0, Math.min(12, num(form, 'extraMonths')));
+      const prorated = fd.get('prorated') === 'yes';
+      const day = s / 30;
+      const salaryPending = day * d;
+      const vacationPending = day * v;
+      const extraPending = prorated ? 0 : extraAmount * extras * (extraMonths / 12);
+      const discount = day * Math.max(0, req - given);
+      const total = salaryPending + vacationPending + extraPending - discount;
+      output(form, `<div class="big">${fmt(total)}</div><div class="result-grid"><div><small>Salario pendiente</small>${fmt(salaryPending)}</div><div><small>Vacaciones</small>${fmt(vacationPending)}</div><div><small>Pagas extra proporcionales</small>${fmt(extraPending)}</div><div><small>Descuento preaviso</small>${fmt(discount)}</div></div><p class="microcopy">Estimación bruta. La baja voluntaria normalmente no genera indemnización. El descuento por preaviso solo procede si existe obligación aplicable.</p>`);
     }
 
     if (t === 'salariohora') {
