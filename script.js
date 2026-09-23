@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const parts = raw.split(',');
       raw = parts.length === 2 ? `${parts[0]}.${parts[1]}` : parts.join('');
     } else if (dot >= 0) {
-      const grouped = /^-?\d{2,3}\.\d{3}$/.test(raw) || /^-?\d{1,3}(\.\d{3}){2,}$/.test(raw);
+      const grouped = /^-?\d{1,3}\.\d{3}$/.test(raw) || /^-?\d{1,3}(\.\d{3}){2,}$/.test(raw);
       if (grouped) raw = raw.replace(/\./g, '');
       else if ((raw.match(/\./g) || []).length > 1) {
         const parts = raw.split('.'), decimals = parts.pop();
@@ -39,6 +39,30 @@ document.addEventListener('DOMContentLoaded', () => {
       r.classList.add('show');
     }
   };
+
+  const parseIsoDate = value => {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
+    if (!match) return null;
+    const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
+  const accruedVacationDays = (start, end, annualDays) => {
+    if (!start || !end || end < start || annualDays < 0) return NaN;
+    const dayMs = 86400000;
+    let accrued = 0;
+    for (let year = start.getUTCFullYear(); year <= end.getUTCFullYear(); year++) {
+      const yearStart = new Date(Date.UTC(year, 0, 1));
+      const yearEnd = new Date(Date.UTC(year, 11, 31));
+      const segmentStart = start > yearStart ? start : yearStart;
+      const segmentEnd = end < yearEnd ? end : yearEnd;
+      const workedDays = Math.floor((segmentEnd - segmentStart) / dayMs) + 1;
+      const daysInYear = (Date.UTC(year + 1, 0, 1) - Date.UTC(year, 0, 1)) / dayMs;
+      accrued += workedDays * annualDays / daysInYear;
+    }
+    return accrued;
+  };
+  window.NumoraAudit = { parseLocalizedNumber, accruedVacationDays, parseIsoDate };
 
   const validateAndNormalize = input => {
     if (!input.value.trim()) {
@@ -276,11 +300,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (t === 'vacaciones') {
-      const fd = new FormData(form), a = new Date(fd.get('start')), b = new Date(fd.get('end')), annual = num(form, 'annual'), used = num(form, 'used');
-      let worked = 0;
-      if (!isNaN(a) && !isNaN(b) && b >= a) worked = Math.ceil((b - a) / 86400000) + 1;
-      const gen = worked * annual / 365, p = Math.max(0, gen - used);
-      output(form, `<div class="big">${p.toFixed(1)} días</div><div class="result-grid"><div><small>Días trabajados</small>${worked}</div><div><small>Generados</small>${gen.toFixed(1)}</div><div><small>Disfrutados</small>${used}</div></div>`);
+      const fd = new FormData(form);
+      const a = parseIsoDate(fd.get('start'));
+      const b = parseIsoDate(fd.get('end'));
+      const annual = Math.max(0, num(form, 'annual'));
+      const used = Math.max(0, num(form, 'used'));
+      if (!a || !b || b < a) {
+        output(form, '<div class="big">Fechas no válidas</div><p class="microcopy">Comprueba que la fecha de fin sea igual o posterior a la fecha de inicio.</p>');
+      } else {
+        const worked = Math.floor((b - a) / 86400000) + 1;
+        const gen = accruedVacationDays(a, b, annual);
+        const pending = Math.max(0, gen - used);
+        const excess = Math.max(0, used - gen);
+        output(form, `<div class="big">${pending.toFixed(1)} días</div><div class="result-grid"><div><small>Días naturales del periodo</small>${worked}</div><div><small>Generados</small>${gen.toFixed(1)}</div><div><small>Disfrutados</small>${used}</div>${excess ? `<div><small>Disfrutados por encima de lo generado</small>${excess.toFixed(1)}</div>` : ''}</div><p class="microcopy">El prorrateo respeta los 365 o 366 días de cada año natural. Revisa convenio, interrupciones y criterio de redondeo.</p>`);
+      }
     }
 
     if (t === 'nomina') {
@@ -362,8 +395,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (t === 'reduccion') {
-      const s = num(form, 'salary'), c = num(form, 'current'), n = num(form, 'new'), ns = c ? s * (n / c) : 0;
-      output(form, `<div class="big">${fmt(ns)}</div><div class="result-grid"><div><small>Salario actual</small>${fmt(s)}</div><div><small>Pérdida mensual</small>${fmt(s - ns)}</div><div><small>Nueva jornada</small>${n}%</div></div>`);
+      const s = Math.max(0, num(form, 'salary'));
+      const c = num(form, 'current');
+      const n = num(form, 'new');
+      if (c <= 0 || n <= 0 || n > c) {
+        output(form, '<div class="big">Revisa la jornada</div><p class="microcopy">La nueva jornada debe ser mayor que 0 y no puede superar la jornada actual.</p>');
+      } else {
+        const ns = s * (n / c);
+        output(form, `<div class="big">${fmt(ns)}</div><div class="result-grid"><div><small>Salario actual</small>${fmt(s)}</div><div><small>Pérdida mensual</small>${fmt(s - ns)}</div><div><small>Jornada actual</small>${c}%</div><div><small>Nueva jornada</small>${n}%</div></div><p class="microcopy">Proporción directa sobre el salario introducido. Algunos complementos extrasalariales o no vinculados al tiempo pueden no reducirse igual.</p>`);
+      }
     }
 
     if (t === 'coste') {
@@ -372,8 +412,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (t === 'horas') {
-      const s = num(form, 'salary'), w = num(form, 'weekly'), h = num(form, 'hours'), b = num(form, 'bonus') / 100, mh = w * 52 / 12, hour = mh ? s / mh : 0;
-      output(form, `<div class="big">${fmt(hour * (1 + b) * h)}</div><div class="result-grid"><div><small>Valor hora base</small>${fmt(hour)}</div><div><small>Horas extra</small>${h}</div><div><small>Recargo</small>${(b * 100).toFixed(0)}%</div></div>`);
+      const annualSalary = Math.max(0, num(form, 'salary'));
+      const annualHours = Math.max(0, num(form, 'annualHours'));
+      const h = Math.max(0, num(form, 'hours'));
+      const b = Math.max(0, num(form, 'bonus')) / 100;
+      if (!annualSalary || !annualHours) {
+        output(form, '<div class="big">Revisa salario y jornada</div><p class="microcopy">Introduce el salario bruto anual y las horas ordinarias anuales de tu convenio o contrato.</p>');
+      } else {
+        const hour = annualSalary / annualHours;
+        output(form, `<div class="big">${fmt(hour * (1 + b) * h)}</div><div class="result-grid"><div><small>Valor hora ordinaria</small>${fmt(hour)}</div><div><small>Horas extra</small>${h}</div><div><small>Recargo indicado</small>${(b * 100).toFixed(1)}%</div><div><small>Valor por hora extra</small>${fmt(hour * (1 + b))}</div></div><p class="microcopy">El importe no puede ser inferior al valor de la hora ordinaria. Usa el recargo de tu convenio; si no existe, deja 0%.</p>`);
+      }
     }
 
     if (t === 'baja') {
