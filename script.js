@@ -67,6 +67,16 @@ document.addEventListener('DOMContentLoaded', () => {
     input.addEventListener('blur', () => validateAndNormalize(input));
   });
 
+  const vacationForm = document.querySelector('form[data-calc="vacaciones"]');
+  if (vacationForm) {
+    const start = vacationForm.elements.namedItem('start');
+    const end = vacationForm.elements.namedItem('end');
+    const today = new Date();
+    const iso = d => d.toISOString().slice(0, 10);
+    if (end && !end.value) end.value = iso(today);
+    if (start && !start.value) start.value = `${today.getFullYear()}-01-01`;
+  }
+
   document.querySelectorAll('form.calculator').forEach(form => {
     if (!form.querySelector('input[data-num-step]')) return;
     const hint = document.createElement('p');
@@ -175,17 +185,70 @@ document.addEventListener('DOMContentLoaded', () => {
     const t = form.dataset.calc;
 
     if (t === 'finiquito') {
-      const s = num(form, 'salary'), d = num(form, 'days'), v = num(form, 'vacdays'), ex = num(form, 'extra'), day = s / 30, a = day * d, b = day * v;
-      output(form, `<div class="big">${fmt(a + b + ex)}</div><div class="result-grid"><div><small>Días trabajados</small>${fmt(a)}</div><div><small>Vacaciones</small>${fmt(b)}</div><div><small>Pagas extra</small>${fmt(ex)}</div></div>`);
+      const fd = new FormData(form);
+      const s = Math.max(0, num(form, 'salary'));
+      const d = Math.max(0, Math.min(31, num(form, 'days')));
+      const v = Math.max(0, num(form, 'vacdays'));
+      const extras = Math.max(0, Math.round(num(form, 'extras')));
+      const extraAmount = Math.max(0, num(form, 'extraAmount'));
+      const extraMonths = Math.max(0, Math.min(12, num(form, 'extraMonths')));
+      const prorated = fd.get('prorated') === 'yes';
+      const day = s / 30;
+      const salaryPending = day * d;
+      const vacationPending = day * v;
+      const extraPending = prorated ? 0 : extraAmount * extras * (extraMonths / 12);
+      const total = salaryPending + vacationPending + extraPending;
+      output(form, `<div class="big">${fmt(total)}</div><div class="result-grid"><div><small>Salario pendiente</small>${fmt(salaryPending)}</div><div><small>Vacaciones</small>${fmt(vacationPending)}</div><div><small>Pagas extra proporcionales</small>${fmt(extraPending)}</div><div><small>Salario día</small>${fmt(day)}</div></div><p class="microcopy">Estimación bruta. Las pagas extra se estiman suponiendo devengo anual uniforme; revisa convenio, nómina y periodo real de devengo.</p>`);
     }
 
     if (t === 'despido') {
-      const s = num(form, 'salary'), y = num(form, 'years'), days = num(form, 'type'), day = s / 365;
-      output(form, `<div class="big">${fmt(day * days * y)}</div><div class="result-grid"><div><small>Salario día</small>${fmt(day)}</div><div><small>Días/año</small>${days}</div><div><small>Antigüedad</small>${y} años</div></div>`);
+      const fd = new FormData(form);
+      const salary = Math.max(0, num(form, 'salary'));
+      const start = new Date(fd.get('start'));
+      const end = new Date(fd.get('end'));
+      const type = fd.get('type') || 'objective';
+      const daySalary = salary / 365;
+      if (!salary || isNaN(start) || isNaN(end) || end < start) {
+        output(form, '<p>Revisa salario y fechas.</p>');
+      } else {
+        const yearMs = 365.2425 * 86400000;
+        const totalYears = (end - start + 86400000) / yearMs;
+        let daysOfComp = 0;
+        let cap = 0;
+        let detail = '';
+        if (type === 'objective') {
+          daysOfComp = totalYears * 20;
+          cap = salary;
+          detail = '20 días por año, con máximo de 12 mensualidades.';
+        } else {
+          const reform = new Date('2012-02-12T00:00:00');
+          if (start < reform) {
+            const preEnd = end < reform ? end : reform;
+            const preYears = Math.max(0, (preEnd - start) / yearMs);
+            const postYears = end > reform ? (end - reform + 86400000) / yearMs : 0;
+            const preDays = preYears * 45;
+            const postDays = postYears * 33;
+            daysOfComp = preDays + postDays;
+            const generalCapDays = 720;
+            const transitionalCapDays = preDays > generalCapDays ? Math.min(preDays, 1260) : generalCapDays;
+            cap = daySalary * transitionalCapDays;
+            detail = 'Tramo transitorio: 45 días/año antes del 12/02/2012 y 33 días/año después, con los límites legales.';
+          } else {
+            daysOfComp = totalYears * 33;
+            cap = salary * 2;
+            detail = '33 días por año, con máximo de 24 mensualidades.';
+          }
+        }
+        const raw = daySalary * daysOfComp;
+        const compensation = Math.min(raw, cap);
+        output(form, `<div class="big">${fmt(compensation)}</div><div class="result-grid"><div><small>Salario día</small>${fmt(daySalary)}</div><div><small>Antigüedad aprox.</small>${totalYears.toFixed(2)} años</div><div><small>Indemnización antes de tope</small>${fmt(raw)}</div><div><small>Tope aplicado</small>${fmt(cap)}</div></div><p class="microcopy">${detail} Estimación orientativa: el cálculo jurídico exacto puede prorratear periodos por meses y depender del salario regulador.</p>`);
+      }
     }
 
     if (t === 'paro') {
-      const base = num(form, 'base'), days = num(form, 'days'), child = num(form, 'children');
+      const base = Math.max(0, num(form, 'base'));
+      const days = Math.max(0, Math.round(num(form, 'days')));
+      const child = Math.max(0, Math.min(2, Math.round(num(form, 'children'))));
       let m = 0;
       if (days >= 360) m = 4;
       if (days >= 540) m = 6;
@@ -198,7 +261,12 @@ document.addEventListener('DOMContentLoaded', () => {
       if (days >= 1800) m = 20;
       if (days >= 1980) m = 22;
       if (days >= 2160) m = 24;
-      output(form, `<div class="big">${m} meses</div><div class="result-grid"><div><small>Primeros 180 días</small>${fmt(base * .70)}</div><div><small>Después</small>${fmt(base * .60)}</div><div><small>Hijos</small>${child}</div></div><p class="microcopy">No aplica topes mínimos/máximos exactos. Revísalo con SEPE.</p>`);
+      const minimum = child === 0 ? 560 : 749;
+      const maximum = child === 0 ? 1225 : child === 1 ? 1400 : 1575;
+      const clampBenefit = value => Math.min(maximum, Math.max(minimum, value));
+      const first = m ? clampBenefit(base * .70) : 0;
+      const later = m ? clampBenefit(base * .60) : 0;
+      output(form, `<div class="big">${m} meses</div><div class="result-grid"><div><small>Primeros 180 días</small>${fmt(first)}</div><div><small>Desde el día 181</small>${fmt(later)}</div><div><small>Mínimo 2026 aplicado</small>${fmt(minimum)}</div><div><small>Máximo 2026 aplicado</small>${fmt(maximum)}</div></div><p class="microcopy">${m ? 'Cuantía bruta orientativa antes de deducciones, aplicando los topes SEPE 2026 según hijos a cargo.' : 'Con menos de 360 días cotizados no se genera esta prestación contributiva; pueden existir otros subsidios.'}</p>`);
     }
 
     if (t === 'vacaciones') {
