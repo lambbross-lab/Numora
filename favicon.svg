@@ -1,8 +1,32 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="15" fill="#6d38f5"/>
-  <g fill="none" stroke="#fff" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M17 47V17"/>
-    <path d="M47 47V17"/>
-    <path d="M18 18 46 46"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Numora</title>
+  <defs>
+    <linearGradient id="tile" x1="7" y1="5" x2="58" y2="61" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8959ff"/>
+      <stop offset="0.55" stop-color="#6d38f5"/>
+      <stop offset="1" stop-color="#5624cf"/>
+    </linearGradient>
+    <linearGradient id="whiteRibbon" x1="17" y1="18" x2="47" y2="47" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff"/>
+      <stop offset="0.55" stop-color="#fbfaff"/>
+      <stop offset="1" stop-color="#eeeaff"/>
+    </linearGradient>
+    <linearGradient id="fold" x1="16" y1="31" x2="31" y2="43" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#aa8cff" stop-opacity="0.48"/>
+      <stop offset="1" stop-color="#d8cbff" stop-opacity="0.08"/>
+    </linearGradient>
+    <filter id="innerShadow" x="-30%" y="-25%" width="160%" height="165%">
+      <feDropShadow dx="0" dy="1.5" stdDeviation="1.2" flood-color="#2d126f" flood-opacity="0.25"/>
+    </filter>
+    <clipPath id="leftPillar">
+      <rect x="15" y="16" width="12" height="32" rx="6"/>
+    </clipPath>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#tile)"/>
+  <g filter="url(#innerShadow)">
+    <rect x="37" y="16" width="12" height="32" rx="6" fill="url(#whiteRibbon)"/>
+    <rect x="15" y="16" width="12" height="32" rx="6" fill="url(#whiteRibbon)"/>
+    <path d="M21 22 43 43" fill="none" stroke="url(#whiteRibbon)" stroke-width="12" stroke-linecap="round"/>
+    <path d="M15 30.5c5.5.9 10.2 3.5 15 8.4l-4.7 4.8C21.4 39.6 18 37.6 15 36.8Z" fill="url(#fold)" clip-path="url(#leftPillar)"/>
   </g>
 </svg>
