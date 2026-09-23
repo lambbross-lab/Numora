@@ -391,11 +391,11 @@ document.addEventListener('DOMContentLoaded', () => {
       let contributed = initial;
       const yearly = [];
       for (let month = 1; month <= months; month++) {
-        if ((month - 1) % contributionEveryMonths === 0) {
+        balance *= (1 + monthlyRate);
+        if (month % contributionEveryMonths === 0) {
           balance += contribution;
           contributed += contribution;
         }
-        balance *= (1 + monthlyRate);
         if (month % 12 === 0) {
           yearly.push({ year: month / 12, balance, contributed });
         }
@@ -544,9 +544,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (t === 'consumovariacion') {
       const oldValue = num(form, 'oldValue'), newValue = num(form, 'newValue'), difference = newValue - oldValue;
-      const percent = oldValue !== 0 ? difference / Math.abs(oldValue) * 100 : 0;
+      const calculable = oldValue !== 0;
+      const percent = calculable ? difference / Math.abs(oldValue) * 100 : null;
       const direction = difference > 0 ? 'Subida' : difference < 0 ? 'Bajada' : 'Sin variación';
-      output(form, `<div class="big">${direction}: ${Math.abs(percent).toLocaleString('es-ES', { maximumFractionDigits: 2 })}%</div><div class="result-grid"><div><small>Valor anterior</small>${fmt(oldValue)}</div><div><small>Valor nuevo</small>${fmt(newValue)}</div><div><small>Diferencia</small>${fmt(difference)}</div><div><small>Variación relativa</small>${percent.toLocaleString('es-ES', { maximumFractionDigits: 2 })}%</div></div><p class="microcopy">Si el valor inicial es cero, no existe una variación porcentual comparable y se muestra 0%.</p>`);
+      const percentLabel = calculable ? `${Math.abs(percent).toLocaleString('es-ES', { maximumFractionDigits: 2 })}%` : 'no calculable';
+      const relativeLabel = calculable ? `${percent.toLocaleString('es-ES', { maximumFractionDigits: 2 })}%` : 'No calculable desde 0';
+      output(form, `<div class="big">${direction}: ${percentLabel}</div><div class="result-grid"><div><small>Valor anterior</small>${fmt(oldValue)}</div><div><small>Valor nuevo</small>${fmt(newValue)}</div><div><small>Diferencia</small>${fmt(difference)}</div><div><small>Variación relativa</small>${relativeLabel}</div></div><p class="microcopy">${calculable ? 'La variación porcentual compara el cambio con el valor inicial.' : 'No existe una variación porcentual finita cuando el valor inicial es cero.'}</p>`);
     }
 
     if (t === 'consumooferta') {
