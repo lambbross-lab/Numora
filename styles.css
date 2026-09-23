@@ -1485,3 +1485,13 @@
     padding-right: 0 !important;
   }
 }
+
+/* Salary calculator scenario comparison */
+.salary-scenarios{margin-top:22px;padding:18px;border:1px solid var(--line);border-radius:18px;background:#fff}
+.salary-scenarios h3{margin:0 0 4px;font-size:1.05rem}
+.salary-scenarios>p{margin:0 0 14px;color:var(--muted);font-size:.9rem}
+.salary-scenario-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.salary-scenario-grid>div{padding:14px;border:1px solid var(--line);border-radius:14px;background:#fafbff}
+.salary-scenario-grid small,.salary-scenario-grid span{display:block;color:var(--muted);line-height:1.35}
+.salary-scenario-grid strong{display:block;margin:5px 0;font-size:1rem}
+@media(max-width:620px){.salary-scenario-grid{grid-template-columns:1fr}}
