@@ -4,7 +4,34 @@ document.addEventListener('DOMContentLoaded', () => {
     currency: 'EUR',
     maximumFractionDigits: 2
   }).format(Number.isFinite(n) ? n : 0);
-  const num = (f, n) => parseFloat(new FormData(f).get(n)) || 0;
+  const parseLocalizedNumber = value => {
+    if (typeof value === 'number') return Number.isFinite(value) ? value : NaN;
+    let raw = String(value ?? '').trim().replace(/[\s\u00a0€%']/g, '');
+    if (!raw) return NaN;
+    const comma = raw.lastIndexOf(','), dot = raw.lastIndexOf('.');
+    if (comma >= 0 && dot >= 0) {
+      const decimal = comma > dot ? ',' : '.';
+      const grouping = decimal === ',' ? /\./g : /,/g;
+      raw = raw.replace(grouping, '').replace(decimal, '.');
+    } else if (comma >= 0) {
+      const parts = raw.split(',');
+      raw = parts.length === 2 ? `${parts[0]}.${parts[1]}` : parts.join('');
+    } else if (dot >= 0) {
+      const grouped = /^-?\d{2,3}\.\d{3}$/.test(raw) || /^-?\d{1,3}(\.\d{3}){2,}$/.test(raw);
+      if (grouped) raw = raw.replace(/\./g, '');
+      else if ((raw.match(/\./g) || []).length > 1) {
+        const parts = raw.split('.'), decimals = parts.pop();
+        raw = `${parts.join('')}.${decimals}`;
+      }
+    }
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : NaN;
+  };
+  window.NumoraNumber = parseLocalizedNumber;
+  const num = (f, n) => {
+    const parsed = parseLocalizedNumber(new FormData(f).get(n));
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
   const output = (f, h) => {
     const r = f.parentElement.querySelector('#result');
     if (r) {
@@ -12,6 +39,136 @@ document.addEventListener('DOMContentLoaded', () => {
       r.classList.add('show');
     }
   };
+
+  const validateAndNormalize = input => {
+    if (!input.value.trim()) {
+      input.setCustomValidity(input.required ? 'Introduce un valor.' : '');
+      return !input.required;
+    }
+    const value = parseLocalizedNumber(input.value);
+    let message = '';
+    if (!Number.isFinite(value)) message = 'Escribe un número válido, por ejemplo 30000, 30.000 o 30000,50.';
+    const min = parseLocalizedNumber(input.dataset.numMin), max = parseLocalizedNumber(input.dataset.numMax);
+    if (!message && Number.isFinite(min) && value < min) message = `El valor mínimo es ${input.dataset.numMin}.`;
+    if (!message && Number.isFinite(max) && value > max) message = `El valor máximo es ${input.dataset.numMax}.`;
+    input.setCustomValidity(message);
+    if (!message) input.value = String(value);
+    return !message;
+  };
+
+  document.querySelectorAll('input[type="number"]').forEach(input => {
+    input.dataset.numMin = input.getAttribute('min') || '';
+    input.dataset.numMax = input.getAttribute('max') || '';
+    input.dataset.numStep = input.getAttribute('step') || '';
+    input.type = 'text';
+    input.inputMode = 'decimal';
+    input.autocomplete = 'off';
+    input.addEventListener('input', () => input.setCustomValidity(''));
+    input.addEventListener('blur', () => validateAndNormalize(input));
+  });
+
+  document.querySelectorAll('form.calculator').forEach(form => {
+    if (!form.querySelector('input[data-num-step]')) return;
+    const hint = document.createElement('p');
+    hint.className = 'number-hint';
+    hint.textContent = 'Puedes escribir 30000, 30.000 o 30.000,50.';
+    const button = form.querySelector('button[type="submit"], button:not([type])');
+    if (button) form.insertBefore(hint, button);
+  });
+
+  document.addEventListener('submit', event => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    const inputs = [...form.querySelectorAll('input[data-num-step]')];
+    const valid = inputs.every(validateAndNormalize);
+    if (!valid) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      form.reportValidity();
+    }
+  }, true);
+
+  const taxScale = base => {
+    const brackets = [[12450, .19], [7750, .24], [15000, .30], [24800, .37], [240000, .45], [Infinity, .47]];
+    let remaining = Math.max(0, base), quota = 0;
+    for (const [width, rate] of brackets) {
+      const slice = Math.min(remaining, width);
+      quota += slice * rate;
+      remaining -= slice;
+      if (remaining <= 0) break;
+    }
+    return quota;
+  };
+
+  const salarySocialSecurity = (gross, contract) => {
+    const monthlyPay = gross / 12, maxBase = 5101.20;
+    const base = Math.min(Math.max(0, monthlyPay), maxBase);
+    const rate = contract === 'indefinite' ? .065 : .0655;
+    let annual = base * 12 * rate;
+    if (monthlyPay > maxBase) {
+      const first = Math.min(monthlyPay, 5611.32) - maxBase;
+      const second = Math.max(0, Math.min(monthlyPay, 7651.80) - 5611.32);
+      const third = Math.max(0, monthlyPay - 7651.80);
+      annual += 12 * (Math.max(0, first) * .0019 + second * .0021 + third * .0024);
+    }
+    return annual;
+  };
+
+  const salaryWithholding = data => {
+    const {
+      gross, socialSecurity, situation, children, childrenUnder3, childShare,
+      age, disability, disabledChildren33, disabledChildren65, mobility,
+      ascendants65, ascendants75, spousePension, childSupport, mortgage, contract
+    } = data;
+    const otherExpenses = Math.min(Math.max(0, gross - socialSecurity),
+      2000 + (mobility ? 2000 : 0) + (disability === '65' ? 7750 : disability === '33' ? 3500 : 0));
+    const rnt = Math.max(0, gross - socialSecurity);
+    let reduction = 0;
+    if (rnt <= 14852) reduction = 7302;
+    else if (rnt <= 17673.52) reduction = 7302 - 1.75 * (rnt - 14852);
+    else if (rnt < 19747.50) reduction = 2364.34 - 1.14 * (rnt - 17673.52);
+    reduction = Math.max(0, Math.round(reduction * 100) / 100);
+    const reducedNet = Math.max(0, rnt - otherExpenses - reduction);
+    const base = Math.max(0, reducedNet - spousePension - (children > 2 ? 600 : 0));
+
+    let personalMinimum = 5550;
+    if (age >= 65) personalMinimum += 1150;
+    if (age >= 75) personalMinimum += 1400;
+    if (disability === '33') personalMinimum += 3000;
+    if (disability === '65') personalMinimum += 12000;
+    const childAmounts = [2400, 2700, 4000];
+    let descendantMinimum = 0;
+    for (let i = 0; i < children; i++) descendantMinimum += (childAmounts[i] || 4500) * childShare;
+    descendantMinimum += childrenUnder3 * 2800 * childShare;
+    descendantMinimum += disabledChildren33 * 3000 * childShare + disabledChildren65 * 12000 * childShare;
+    const ascendantMinimum = ascendants65 * 1150 + ascendants75 * 2550;
+    const familyMinimum = personalMinimum + descendantMinimum + ascendantMinimum;
+
+    const childBand = children > 1 ? 2 : children;
+    const thresholds = {
+      one: [0, 17644, 18694],
+      two: [17197, 18130, 19262],
+      three: [15876, 16342, 16867]
+    };
+    const threshold = thresholds[situation][childBand] || 0;
+    if (threshold && gross <= threshold) {
+      const exemptRate = contract === 'under-year' ? 2 : 0;
+      return { rate: exemptRate, annual: gross * exemptRate / 100, familyMinimum, base };
+    }
+
+    const annualities = Math.min(Math.max(0, childSupport), base);
+    const quota1 = annualities > 0 && base > annualities
+      ? taxScale(base - annualities) + taxScale(annualities)
+      : taxScale(base);
+    const quota2 = taxScale(familyMinimum + (annualities > 0 && base > annualities ? 1980 : 0));
+    let quota = Math.max(0, quota1 - quota2);
+    if (gross <= 35200 && threshold) quota = Math.min(quota, Math.max(0, (gross - threshold) * .43));
+    if (mortgage && gross < 33007.20) quota = Math.max(0, quota - Math.trunc(gross * .02));
+    let rate = gross > 0 ? Math.floor((quota / gross * 100) * 100) / 100 : 0;
+    if (contract === 'under-year' && rate < 2) rate = 2;
+    return { rate, annual: gross * rate / 100, familyMinimum, base };
+  };
+  window.NumoraSalary = { socialSecurity: salarySocialSecurity, withholding: salaryWithholding };
 
   document.querySelectorAll('.calculator').forEach(form => form.addEventListener('submit', e => {
     e.preventDefault();
@@ -53,8 +210,51 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (t === 'nomina') {
-      const g = num(form, 'gross'), p = num(form, 'pays') || 12, ir = num(form, 'irpf') / 100, ss = num(form, 'ss') / 100, net = g - (g * ir) - (g * ss);
-      output(form, `<div class="big">${fmt(net / p)}</div><div class="result-grid"><div><small>Neto anual</small>${fmt(net)}</div><div><small>IRPF estimado</small>${fmt(g * ir)}</div><div><small>Seg. Social</small>${fmt(g * ss)}</div></div>`);
+      const fd = new FormData(form);
+      const gross = num(form, 'gross'), pays = num(form, 'pays') || 12;
+      const contract = fd.get('contract') || 'indefinite';
+      const civilStatus = fd.get('civilStatus') || 'other';
+      const spouseIncome = num(form, 'spouseIncome');
+      const children = Math.max(0, Math.round(num(form, 'children')));
+      const childrenUnder3 = Math.min(children, Math.max(0, Math.round(num(form, 'childrenUnder3'))));
+      const exclusiveChildren = fd.get('exclusiveChildren') === 'yes';
+      const situation = civilStatus === 'married' && spouseIncome <= 1500
+        ? 'two'
+        : civilStatus === 'single' && children > 0 && exclusiveChildren ? 'one' : 'three';
+      const socialSecurity = salarySocialSecurity(gross, contract);
+      const withholding = salaryWithholding({
+        gross,
+        socialSecurity,
+        situation,
+        children,
+        childrenUnder3,
+        childShare: fd.get('childShare') === 'full' ? 1 : .5,
+        age: Math.max(16, Math.round(num(form, 'age') || 35)),
+        disability: fd.get('disability') || 'none',
+        disabledChildren33: Math.max(0, Math.round(num(form, 'disabledChildren33'))),
+        disabledChildren65: Math.max(0, Math.round(num(form, 'disabledChildren65'))),
+        mobility: fd.get('mobility') === 'yes',
+        ascendants65: Math.max(0, Math.round(num(form, 'ascendants65'))),
+        ascendants75: Math.max(0, Math.round(num(form, 'ascendants75'))),
+        spousePension: Math.max(0, num(form, 'spousePension')),
+        childSupport: Math.max(0, num(form, 'childSupport')),
+        mortgage: fd.get('mortgage') === 'yes',
+        contract
+      });
+      const manualRate = num(form, 'manualIrpf');
+      const useManual = fd.get('irpfMode') === 'manual';
+      const irpfRate = useManual ? Math.max(0, Math.min(60, manualRate)) : withholding.rate;
+      const irpfAnnual = gross * irpfRate / 100;
+      const netAnnual = Math.max(0, gross - socialSecurity - irpfAnnual);
+      const averageMonth = netAnnual / 12;
+      const payGross = gross / pays, payIrpf = irpfAnnual / pays;
+      const ordinaryPay = pays === 14 ? payGross - payIrpf - socialSecurity / 12 : netAnnual / 12;
+      const extraPay = pays === 14 ? payGross - payIrpf : 0;
+      const familyLabels = { one: '1: monoparental', two: '2: cónyuge con rentas ≤ 1.500 €', three: '3: otras situaciones' };
+      const payCards = pays === 14
+        ? `<div><small>Nómina ordinaria aprox.</small>${fmt(ordinaryPay)}</div><div><small>Cada paga extra aprox.</small>${fmt(extraPay)}</div>`
+        : `<div><small>Neto por paga</small>${fmt(netAnnual / 12)}</div>`;
+      output(form, `<div class="big">${fmt(averageMonth)} / mes de media</div><div class="result-grid"><div><small>Neto anual</small>${fmt(netAnnual)}</div>${payCards}<div><small>IRPF (${irpfRate.toFixed(2)}%)</small>${fmt(irpfAnnual)}</div><div><small>Seguridad Social</small>${fmt(socialSecurity)}</div><div><small>Bruto anual</small>${fmt(gross)}</div></div><p class="microcopy">Situación AEAT aplicada: ${familyLabels[situation]}. ${useManual ? 'Se ha usado el IRPF manual indicado.' : 'IRPF estimado con el algoritmo general de retenciones 2026.'} Las nóminas reales pueden variar por convenio, conceptos no cotizables, retribución irregular, regularizaciones o circunstancias especiales.</p>`);
     }
 
     if (t === 'reduccion') {
