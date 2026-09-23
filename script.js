@@ -379,6 +379,64 @@ document.addEventListener('DOMContentLoaded', () => {
         output(form, `<div class="big">${y} años, ${m} meses y ${d} días</div><div class="result-grid"><div><small>Años</small>${y}</div><div><small>Meses</small>${m}</div><div><small>Días totales</small>${total}</div></div>`);
       }
     }
+
+    if (t === 'hogaragua') {
+      const people = Math.max(1, Math.round(num(form, 'people'))), litres = Math.max(0, num(form, 'litres'));
+      const days = Math.max(1, num(form, 'days')), price = Math.max(0, num(form, 'price')), fixed = Math.max(0, num(form, 'fixed'));
+      const cubicMetres = people * litres * days / 1000, monthlyCost = cubicMetres * price + fixed;
+      output(form, `<div class="big">${fmt(monthlyCost)} / mes</div><div class="result-grid"><div><small>Consumo mensual</small>${cubicMetres.toFixed(2)} m³</div><div><small>Consumo anual</small>${(cubicMetres * 12).toFixed(2)} m³</div><div><small>Coste variable</small>${fmt(cubicMetres * price)}</div><div><small>Cuota fija</small>${fmt(fixed)}</div><div><small>Coste anual</small>${fmt(monthlyCost * 12)}</div><div><small>Personas</small>${people}</div></div><p class="microcopy">Estimación basada en el consumo indicado. La factura real puede incluir bloques, cánones, saneamiento, impuestos y mínimos de consumo.</p>`);
+    }
+
+    if (t === 'hogarcalefaccion') {
+      const power = Math.max(0, num(form, 'power')), hours = Math.max(0, num(form, 'hours')), days = Math.max(0, num(form, 'days'));
+      const price = Math.max(0, num(form, 'price')), load = Math.max(0, Math.min(100, num(form, 'load'))) / 100;
+      const monthlyKwh = power * hours * days * load, monthlyCost = monthlyKwh * price;
+      output(form, `<div class="big">${fmt(monthlyCost)} / mes</div><div class="result-grid"><div><small>Consumo mensual</small>${monthlyKwh.toFixed(2)} kWh</div><div><small>Coste diario</small>${fmt(days ? monthlyCost / days : 0)}</div><div><small>Coste mensual</small>${fmt(monthlyCost)}</div><div><small>Horas de uso</small>${(hours * days).toFixed(1)} h</div><div><small>Factor de funcionamiento</small>${(load * 100).toFixed(0)}%</div><div><small>Coste 5 meses</small>${fmt(monthlyCost * 5)}</div></div><p class="microcopy">No incluye cuotas fijas, impuestos ni pérdidas que no estén reflejadas en el factor de funcionamiento.</p>`);
+    }
+
+    if (t === 'hogarstandby') {
+      const watts = Math.max(0, num(form, 'watts')), devices = Math.max(1, Math.round(num(form, 'devices')));
+      const hours = Math.max(0, Math.min(24, num(form, 'hours'))), price = Math.max(0, num(form, 'price'));
+      const yearlyKwh = watts * devices / 1000 * hours * 365, yearlyCost = yearlyKwh * price;
+      output(form, `<div class="big">${fmt(yearlyCost)} / año</div><div class="result-grid"><div><small>Consumo diario</small>${(yearlyKwh / 365).toFixed(3)} kWh</div><div><small>Consumo mensual</small>${(yearlyKwh / 12).toFixed(2)} kWh</div><div><small>Consumo anual</small>${yearlyKwh.toFixed(2)} kWh</div><div><small>Coste mensual</small>${fmt(yearlyCost / 12)}</div><div><small>Coste anual</small>${fmt(yearlyCost)}</div><div><small>Aparatos</small>${devices}</div></div><p class="microcopy">Para mejorar la estimación, utiliza la potencia en espera indicada por el fabricante o medida con un medidor de consumo.</p>`);
+    }
+
+    if (t === 'hogarpintura') {
+      const perimeter = Math.max(0, num(form, 'perimeter')), height = Math.max(0, num(form, 'height'));
+      const openings = Math.max(0, num(form, 'openings')), coats = Math.max(1, Math.round(num(form, 'coats')));
+      const coverage = Math.max(.1, num(form, 'coverage')), waste = Math.max(0, num(form, 'waste')) / 100;
+      const price = Math.max(0, num(form, 'price')), area = Math.max(0, perimeter * height - openings);
+      const litres = area * coats / coverage * (1 + waste), cost = litres * price;
+      output(form, `<div class="big">${litres.toFixed(2)} litros</div><div class="result-grid"><div><small>Superficie neta</small>${area.toFixed(2)} m²</div><div><small>Manos</small>${coats}</div><div><small>Rendimiento</small>${coverage.toFixed(1)} m²/L</div><div><small>Margen extra</small>${(waste * 100).toFixed(0)}%</div><div><small>Coste estimado</small>${fmt(cost)}</div><div><small>Litros redondeados</small>${Math.ceil(litres)} L</div></div><p class="microcopy">La absorción de la pared, el color anterior, la técnica y el producto pueden modificar el rendimiento real.</p>`);
+    }
+
+    if (t === 'hogarsuelo') {
+      const length = Math.max(0, num(form, 'length')), width = Math.max(0, num(form, 'width'));
+      const tileWidth = Math.max(.1, num(form, 'tileWidth')) / 100, tileHeight = Math.max(.1, num(form, 'tileHeight')) / 100;
+      const waste = Math.max(0, num(form, 'waste')) / 100, perBox = Math.max(1, Math.round(num(form, 'perBox'))), boxPrice = Math.max(0, num(form, 'boxPrice'));
+      const area = length * width, purchaseArea = area * (1 + waste), tileArea = tileWidth * tileHeight;
+      const tiles = Math.ceil(purchaseArea / tileArea), boxes = Math.ceil(tiles / perBox), boughtTiles = boxes * perBox;
+      output(form, `<div class="big">${boxes} cajas</div><div class="result-grid"><div><small>Superficie</small>${area.toFixed(2)} m²</div><div><small>Con margen</small>${purchaseArea.toFixed(2)} m²</div><div><small>Piezas necesarias</small>${tiles}</div><div><small>Piezas compradas</small>${boughtTiles}</div><div><small>Sobrantes estimadas</small>${Math.max(0, boughtTiles - tiles)}</div><div><small>Coste estimado</small>${fmt(boxes * boxPrice)}</div></div><p class="microcopy">Comprueba que todas las cajas correspondan al mismo lote. Los cortes complejos o la colocación diagonal pueden exigir más margen.</p>`);
+    }
+
+    if (t === 'hogarac') {
+      const power = Math.max(0, num(form, 'power')), hours = Math.max(0, num(form, 'hours')), days = Math.max(0, num(form, 'days'));
+      const months = Math.max(1, Math.min(12, Math.round(num(form, 'months')))), price = Math.max(0, num(form, 'price'));
+      const load = Math.max(0, Math.min(100, num(form, 'load'))) / 100, monthlyKwh = power * hours * days * load;
+      const monthlyCost = monthlyKwh * price, seasonCost = monthlyCost * months;
+      output(form, `<div class="big">${fmt(monthlyCost)} / mes</div><div class="result-grid"><div><small>Consumo mensual</small>${monthlyKwh.toFixed(2)} kWh</div><div><small>Coste diario</small>${fmt(days ? monthlyCost / days : 0)}</div><div><small>Coste mensual</small>${fmt(monthlyCost)}</div><div><small>Meses de uso</small>${months}</div><div><small>Consumo temporada</small>${(monthlyKwh * months).toFixed(2)} kWh</div><div><small>Coste temporada</small>${fmt(seasonCost)}</div></div><p class="microcopy">Usa la potencia eléctrica absorbida, no la potencia frigorífica. Los equipos inverter no consumen continuamente al máximo.</p>`);
+    }
+
+    if (t === 'hogarcomparador') {
+      const fd = new FormData(form), years = Math.max(1, Math.round(num(form, 'years'))), hours = Math.max(0, num(form, 'hours'));
+      const days = Math.max(0, Math.min(365, num(form, 'days'))), energyPrice = Math.max(0, num(form, 'energyPrice'));
+      const purchaseA = Math.max(0, num(form, 'purchaseA')), wattsA = Math.max(0, num(form, 'wattsA'));
+      const purchaseB = Math.max(0, num(form, 'purchaseB')), wattsB = Math.max(0, num(form, 'wattsB'));
+      const energyA = wattsA / 1000 * hours * days * years * energyPrice, energyB = wattsB / 1000 * hours * days * years * energyPrice;
+      const totalA = purchaseA + energyA, totalB = purchaseB + energyB, winner = totalA <= totalB ? (fd.get('nameA') || 'Opción A') : (fd.get('nameB') || 'Opción B');
+      const saving = Math.abs(totalA - totalB);
+      output(form, `<div class="big">Conviene ${winner}</div><div class="result-grid"><div><small>Total opción A</small>${fmt(totalA)}</div><div><small>Energía opción A</small>${fmt(energyA)}</div><div><small>Total opción B</small>${fmt(totalB)}</div><div><small>Energía opción B</small>${fmt(energyB)}</div><div><small>Diferencia</small>${fmt(saving)}</div><div><small>Periodo comparado</small>${years} años</div></div><p class="microcopy">Compara compra y electricidad. No incluye mantenimiento, reparaciones, financiación, vida útil ni cambios futuros del precio energético.</p>`);
+    }
   }));
 
   const poolForm = document.getElementById('pool-form');

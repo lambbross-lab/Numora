@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://www.numora.es/</loc><lastmod>2026-09-22</lastmod><priority>1.0</priority></url>
-  <url><loc>https://www.numora.es/todas-las-calculadoras.html</loc><lastmod>2026-09-22</lastmod><priority>0.9</priority></url>
+  <url><loc>https://www.numora.es/</loc><lastmod>2026-09-23</lastmod><priority>1.0</priority></url>
+  <url><loc>https://www.numora.es/todas-las-calculadoras.html</loc><lastmod>2026-09-23</lastmod><priority>0.9</priority></url>
   <url><loc>https://www.numora.es/educacion-nota-pau.html</loc><lastmod>2026-06-17</lastmod><priority>0.8</priority></url>
   <url><loc>https://www.numora.es/calculadora-media-ponderada.html</loc><lastmod>2026-06-17</lastmod><priority>0.8</priority></url>
   <url><loc>https://www.numora.es/mascotas-coste-perro.html</loc><lastmod>2026-06-17</lastmod><priority>0.8</priority></url>
@@ -46,6 +46,13 @@
   <url><loc>https://www.numora.es/privacidad.html</loc><lastmod>2026-06-11</lastmod><priority>0.3</priority></url>
   <url><loc>https://www.numora.es/cookies.html</loc><lastmod>2026-06-11</lastmod><priority>0.3</priority></url>
   <url><loc>https://www.numora.es/hogar-coste-electricidad.html</loc><lastmod>2026-09-22</lastmod><priority>0.8</priority></url>
+  <url><loc>https://www.numora.es/hogar-coste-agua.html</loc><lastmod>2026-09-23</lastmod><priority>0.8</priority></url>
+  <url><loc>https://www.numora.es/hogar-coste-calefaccion.html</loc><lastmod>2026-09-23</lastmod><priority>0.8</priority></url>
+  <url><loc>https://www.numora.es/hogar-consumo-standby.html</loc><lastmod>2026-09-23</lastmod><priority>0.8</priority></url>
+  <url><loc>https://www.numora.es/hogar-aire-acondicionado.html</loc><lastmod>2026-09-23</lastmod><priority>0.8</priority></url>
+  <url><loc>https://www.numora.es/hogar-comparador-electrodomesticos.html</loc><lastmod>2026-09-23</lastmod><priority>0.8</priority></url>
+  <url><loc>https://www.numora.es/hogar-pintura.html</loc><lastmod>2026-09-23</lastmod><priority>0.8</priority></url>
+  <url><loc>https://www.numora.es/hogar-suelo-azulejos.html</loc><lastmod>2026-09-23</lastmod><priority>0.8</priority></url>
   <url><loc>https://www.numora.es/blog-coste-electricidad.html</loc><lastmod>2026-09-22</lastmod><priority>0.8</priority></url>
   <url><loc>https://www.numora.es/huerto-riego.html</loc><lastmod>2026-09-22</lastmod><priority>0.8</priority></url>
   <url><loc>https://www.numora.es/blog-riego-huerto.html</loc><lastmod>2026-09-22</lastmod><priority>0.8</priority></url>
