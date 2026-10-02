@@ -1,10 +1,52 @@
 document.addEventListener('DOMContentLoaded', () => {
+  const calculatorForm = document.querySelector('.tool-page form.calculator');
+  if (calculatorForm) {
+    const page = window.location.pathname.split('/').pop() || '';
+    const category = page.startsWith('finanzas-') ? 'finanzas'
+      : page.startsWith('hogar-') ? 'hogar'
+      : page.startsWith('mascotas-') ? 'mascotas'
+      : page.startsWith('huerto-') ? 'huerto'
+      : page.startsWith('educacion-') || page === 'calculadora-media-ponderada.html' ? 'educacion'
+      : page.startsWith('salud-') ? 'salud'
+      : page.startsWith('consumo-') ? 'consumo'
+      : page.startsWith('piscina-') ? 'piscinas'
+      : 'laboral';
+    document.body.dataset.category = category;
+  }
+
   const fmt = n => new Intl.NumberFormat('es-ES', {
     style: 'currency',
     currency: 'EUR',
     maximumFractionDigits: 2
   }).format(Number.isFinite(n) ? n : 0);
-  const num = (f, n) => parseFloat(new FormData(f).get(n)) || 0;
+  const parseLocalizedNumber = value => {
+    if (typeof value === 'number') return Number.isFinite(value) ? value : NaN;
+    let raw = String(value ?? '').trim().replace(/[\s\u00a0€%']/g, '');
+    if (!raw) return NaN;
+    const comma = raw.lastIndexOf(','), dot = raw.lastIndexOf('.');
+    if (comma >= 0 && dot >= 0) {
+      const decimal = comma > dot ? ',' : '.';
+      const grouping = decimal === ',' ? /\./g : /,/g;
+      raw = raw.replace(grouping, '').replace(decimal, '.');
+    } else if (comma >= 0) {
+      const parts = raw.split(',');
+      raw = parts.length === 2 ? `${parts[0]}.${parts[1]}` : parts.join('');
+    } else if (dot >= 0) {
+      const grouped = /^-?\d{1,3}\.\d{3}$/.test(raw) || /^-?\d{1,3}(\.\d{3}){2,}$/.test(raw);
+      if (grouped) raw = raw.replace(/\./g, '');
+      else if ((raw.match(/\./g) || []).length > 1) {
+        const parts = raw.split('.'), decimals = parts.pop();
+        raw = `${parts.join('')}.${decimals}`;
+      }
+    }
+    const parsed = Number(raw);
+    return Number.isFinite(parsed) ? parsed : NaN;
+  };
+  window.NumoraNumber = parseLocalizedNumber;
+  const num = (f, n) => {
+    const parsed = parseLocalizedNumber(new FormData(f).get(n));
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
   const output = (f, h) => {
     const r = f.parentElement.querySelector('#result');
     if (r) {
@@ -13,22 +55,245 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  const parseIsoDate = value => {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ''));
+    if (!match) return null;
+    const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
+  const accruedVacationDays = (start, end, annualDays) => {
+    if (!start || !end || end < start || annualDays < 0) return NaN;
+    const dayMs = 86400000;
+    let accrued = 0;
+    for (let year = start.getUTCFullYear(); year <= end.getUTCFullYear(); year++) {
+      const yearStart = new Date(Date.UTC(year, 0, 1));
+      const yearEnd = new Date(Date.UTC(year, 11, 31));
+      const segmentStart = start > yearStart ? start : yearStart;
+      const segmentEnd = end < yearEnd ? end : yearEnd;
+      const workedDays = Math.floor((segmentEnd - segmentStart) / dayMs) + 1;
+      const daysInYear = (Date.UTC(year + 1, 0, 1) - Date.UTC(year, 0, 1)) / dayMs;
+      accrued += workedDays * annualDays / daysInYear;
+    }
+    return accrued;
+  };
+  window.NumoraAudit = { parseLocalizedNumber, accruedVacationDays, parseIsoDate };
+
+  const validateAndNormalize = input => {
+    if (!input.value.trim()) {
+      input.setCustomValidity(input.required ? 'Introduce un valor.' : '');
+      return !input.required;
+    }
+    const value = parseLocalizedNumber(input.value);
+    let message = '';
+    if (!Number.isFinite(value)) message = 'Escribe un número válido, por ejemplo 30000, 30.000 o 30000,50.';
+    const min = parseLocalizedNumber(input.dataset.numMin), max = parseLocalizedNumber(input.dataset.numMax);
+    if (!message && Number.isFinite(min) && value < min) message = `El valor mínimo es ${input.dataset.numMin}.`;
+    if (!message && Number.isFinite(max) && value > max) message = `El valor máximo es ${input.dataset.numMax}.`;
+    input.setCustomValidity(message);
+    if (!message) input.value = String(value);
+    return !message;
+  };
+
+  document.querySelectorAll('input[type="number"]').forEach(input => {
+    input.dataset.numMin = input.getAttribute('min') || '';
+    input.dataset.numMax = input.getAttribute('max') || '';
+    input.dataset.numStep = input.getAttribute('step') || '';
+    input.type = 'text';
+    input.inputMode = 'decimal';
+    input.autocomplete = 'off';
+    input.addEventListener('input', () => input.setCustomValidity(''));
+    input.addEventListener('blur', () => validateAndNormalize(input));
+  });
+
+  const seniorityForm = document.querySelector('form[data-calc="antiguedad"]');
+  if (seniorityForm) {
+    const end = seniorityForm.elements.namedItem('end');
+    if (end && !end.value) end.value = new Date().toISOString().slice(0, 10);
+  }
+
+  const vacationForm = document.querySelector('form[data-calc="vacaciones"]');
+  if (vacationForm) {
+    const start = vacationForm.elements.namedItem('start');
+    const end = vacationForm.elements.namedItem('end');
+    const today = new Date();
+    const iso = d => d.toISOString().slice(0, 10);
+    if (end && !end.value) end.value = iso(today);
+    if (start && !start.value) start.value = `${today.getFullYear()}-01-01`;
+  }
+
+  document.querySelectorAll('form.calculator').forEach(form => {
+    if (!form.querySelector('input[data-num-step]')) return;
+    const hint = document.createElement('p');
+    hint.className = 'number-hint';
+    hint.textContent = 'Puedes escribir 30000, 30.000 o 30.000,50.';
+    const button = form.querySelector('button[type="submit"], button:not([type])');
+    if (button) form.insertBefore(hint, button);
+  });
+
+  document.addEventListener('submit', event => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    const inputs = [...form.querySelectorAll('input[data-num-step]')];
+    const valid = inputs.every(validateAndNormalize);
+    if (!valid) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      form.reportValidity();
+    }
+  }, true);
+
+  const taxScale = base => {
+    const brackets = [[12450, .19], [7750, .24], [15000, .30], [24800, .37], [240000, .45], [Infinity, .47]];
+    let remaining = Math.max(0, base), quota = 0;
+    for (const [width, rate] of brackets) {
+      const slice = Math.min(remaining, width);
+      quota += slice * rate;
+      remaining -= slice;
+      if (remaining <= 0) break;
+    }
+    return quota;
+  };
+
+  const salarySocialSecurity = (gross, contract) => {
+    const monthlyPay = gross / 12, maxBase = 5101.20;
+    const base = Math.min(Math.max(0, monthlyPay), maxBase);
+    const rate = contract === 'indefinite' ? .065 : .0655;
+    let annual = base * 12 * rate;
+    if (monthlyPay > maxBase) {
+      const first = Math.min(monthlyPay, 5611.32) - maxBase;
+      const second = Math.max(0, Math.min(monthlyPay, 7651.80) - 5611.32);
+      const third = Math.max(0, monthlyPay - 7651.80);
+      annual += 12 * (Math.max(0, first) * .0019 + second * .0021 + third * .0024);
+    }
+    return annual;
+  };
+
+  const salaryWithholding = data => {
+    const {
+      gross, socialSecurity, situation, children, childrenUnder3, childShare,
+      age, disability, disabledChildren33, disabledChildren65, mobility,
+      ascendants65, ascendants75, spousePension, childSupport, mortgage, contract
+    } = data;
+    const otherExpenses = Math.min(Math.max(0, gross - socialSecurity),
+      2000 + (mobility ? 2000 : 0) + (disability === '65' ? 7750 : disability === '33' ? 3500 : 0));
+    const rnt = Math.max(0, gross - socialSecurity);
+    let reduction = 0;
+    if (rnt <= 14852) reduction = 7302;
+    else if (rnt <= 17673.52) reduction = 7302 - 1.75 * (rnt - 14852);
+    else if (rnt < 19747.50) reduction = 2364.34 - 1.14 * (rnt - 17673.52);
+    reduction = Math.max(0, Math.round(reduction * 100) / 100);
+    const reducedNet = Math.max(0, rnt - otherExpenses - reduction);
+    const base = Math.max(0, reducedNet - spousePension - (children > 2 ? 600 : 0));
+
+    let personalMinimum = 5550;
+    if (age >= 65) personalMinimum += 1150;
+    if (age >= 75) personalMinimum += 1400;
+    if (disability === '33') personalMinimum += 3000;
+    if (disability === '65') personalMinimum += 12000;
+    const childAmounts = [2400, 2700, 4000];
+    let descendantMinimum = 0;
+    for (let i = 0; i < children; i++) descendantMinimum += (childAmounts[i] || 4500) * childShare;
+    descendantMinimum += childrenUnder3 * 2800 * childShare;
+    descendantMinimum += disabledChildren33 * 3000 * childShare + disabledChildren65 * 12000 * childShare;
+    const ascendantMinimum = ascendants65 * 1150 + ascendants75 * 2550;
+    const familyMinimum = personalMinimum + descendantMinimum + ascendantMinimum;
+
+    const childBand = children > 1 ? 2 : children;
+    const thresholds = {
+      one: [0, 17644, 18694],
+      two: [17197, 18130, 19262],
+      three: [15876, 16342, 16867]
+    };
+    const threshold = thresholds[situation][childBand] || 0;
+    if (threshold && gross <= threshold) {
+      const exemptRate = contract === 'under-year' ? 2 : 0;
+      return { rate: exemptRate, annual: gross * exemptRate / 100, familyMinimum, base };
+    }
+
+    const annualities = Math.min(Math.max(0, childSupport), base);
+    const quota1 = annualities > 0 && base > annualities
+      ? taxScale(base - annualities) + taxScale(annualities)
+      : taxScale(base);
+    const quota2 = taxScale(familyMinimum + (annualities > 0 && base > annualities ? 1980 : 0));
+    let quota = Math.max(0, quota1 - quota2);
+    if (gross <= 35200 && threshold) quota = Math.min(quota, Math.max(0, (gross - threshold) * .43));
+    if (mortgage && gross < 33007.20) quota = Math.max(0, quota - Math.trunc(gross * .02));
+    let rate = gross > 0 ? Math.floor((quota / gross * 100) * 100) / 100 : 0;
+    if (contract === 'under-year' && rate < 2) rate = 2;
+    return { rate, annual: gross * rate / 100, familyMinimum, base };
+  };
+  window.NumoraSalary = { socialSecurity: salarySocialSecurity, withholding: salaryWithholding };
+
   document.querySelectorAll('.calculator').forEach(form => form.addEventListener('submit', e => {
     e.preventDefault();
     const t = form.dataset.calc;
 
     if (t === 'finiquito') {
-      const s = num(form, 'salary'), d = num(form, 'days'), v = num(form, 'vacdays'), ex = num(form, 'extra'), day = s / 30, a = day * d, b = day * v;
-      output(form, `<div class="big">${fmt(a + b + ex)}</div><div class="result-grid"><div><small>Días trabajados</small>${fmt(a)}</div><div><small>Vacaciones</small>${fmt(b)}</div><div><small>Pagas extra</small>${fmt(ex)}</div></div>`);
+      const fd = new FormData(form);
+      const s = Math.max(0, num(form, 'salary'));
+      const d = Math.max(0, Math.min(31, num(form, 'days')));
+      const v = Math.max(0, num(form, 'vacdays'));
+      const extras = Math.max(0, Math.round(num(form, 'extras')));
+      const extraAmount = Math.max(0, num(form, 'extraAmount'));
+      const extraMonths = Math.max(0, Math.min(12, num(form, 'extraMonths')));
+      const prorated = fd.get('prorated') === 'yes';
+      const day = s / 30;
+      const salaryPending = day * d;
+      const vacationPending = day * v;
+      const extraPending = prorated ? 0 : extraAmount * extras * (extraMonths / 12);
+      const total = salaryPending + vacationPending + extraPending;
+      output(form, `<div class="big">${fmt(total)}</div><div class="result-grid"><div><small>Salario pendiente</small>${fmt(salaryPending)}</div><div><small>Vacaciones</small>${fmt(vacationPending)}</div><div><small>Pagas extra proporcionales</small>${fmt(extraPending)}</div><div><small>Salario día</small>${fmt(day)}</div></div><p class="microcopy">Estimación bruta. Las pagas extra se estiman suponiendo devengo anual uniforme; revisa convenio, nómina y periodo real de devengo.</p>`);
     }
 
     if (t === 'despido') {
-      const s = num(form, 'salary'), y = num(form, 'years'), days = num(form, 'type'), day = s / 30;
-      output(form, `<div class="big">${fmt(day * days * y)}</div><div class="result-grid"><div><small>Salario día</small>${fmt(day)}</div><div><small>Días/año</small>${days}</div><div><small>Antigüedad</small>${y} años</div></div>`);
+      const fd = new FormData(form);
+      const salary = Math.max(0, num(form, 'salary'));
+      const start = new Date(fd.get('start'));
+      const end = new Date(fd.get('end'));
+      const type = fd.get('type') || 'objective';
+      const daySalary = salary / 365;
+      if (!salary || isNaN(start) || isNaN(end) || end < start) {
+        output(form, '<p>Revisa salario y fechas.</p>');
+      } else {
+        const yearMs = 365.2425 * 86400000;
+        const totalYears = (end - start + 86400000) / yearMs;
+        let daysOfComp = 0;
+        let cap = 0;
+        let detail = '';
+        if (type === 'objective') {
+          daysOfComp = totalYears * 20;
+          cap = salary;
+          detail = '20 días por año, con máximo de 12 mensualidades.';
+        } else {
+          const reform = new Date('2012-02-12T00:00:00');
+          if (start < reform) {
+            const preEnd = end < reform ? end : reform;
+            const preYears = Math.max(0, (preEnd - start) / yearMs);
+            const postYears = end > reform ? (end - reform + 86400000) / yearMs : 0;
+            const preDays = preYears * 45;
+            const postDays = postYears * 33;
+            daysOfComp = preDays + postDays;
+            const generalCapDays = 720;
+            const transitionalCapDays = preDays > generalCapDays ? Math.min(preDays, 1260) : generalCapDays;
+            cap = daySalary * transitionalCapDays;
+            detail = 'Tramo transitorio: 45 días/año antes del 12/02/2012 y 33 días/año después, con los límites legales.';
+          } else {
+            daysOfComp = totalYears * 33;
+            cap = salary * 2;
+            detail = '33 días por año, con máximo de 24 mensualidades.';
+          }
+        }
+        const raw = daySalary * daysOfComp;
+        const compensation = Math.min(raw, cap);
+        output(form, `<div class="big">${fmt(compensation)}</div><div class="result-grid"><div><small>Salario día</small>${fmt(daySalary)}</div><div><small>Antigüedad aprox.</small>${totalYears.toFixed(2)} años</div><div><small>Indemnización antes de tope</small>${fmt(raw)}</div><div><small>Tope aplicado</small>${fmt(cap)}</div></div><p class="microcopy">${detail} Estimación orientativa: el cálculo jurídico exacto puede prorratear periodos por meses y depender del salario regulador.</p>`);
+      }
     }
 
     if (t === 'paro') {
-      const base = num(form, 'base'), days = num(form, 'days'), child = num(form, 'children');
+      const base = Math.max(0, num(form, 'base'));
+      const days = Math.max(0, Math.round(num(form, 'days')));
+      const child = Math.max(0, Math.min(2, Math.round(num(form, 'children'))));
       let m = 0;
       if (days >= 360) m = 4;
       if (days >= 540) m = 6;
@@ -41,25 +306,119 @@ document.addEventListener('DOMContentLoaded', () => {
       if (days >= 1800) m = 20;
       if (days >= 1980) m = 22;
       if (days >= 2160) m = 24;
-      output(form, `<div class="big">${m} meses</div><div class="result-grid"><div><small>Primeros 180 días</small>${fmt(base * .70)}</div><div><small>Después</small>${fmt(base * .60)}</div><div><small>Hijos</small>${child}</div></div><p class="microcopy">No aplica topes mínimos/máximos exactos. Revísalo con SEPE.</p>`);
+      const minimum = child === 0 ? 560 : 749;
+      const maximum = child === 0 ? 1225 : child === 1 ? 1400 : 1575;
+      const clampBenefit = value => Math.min(maximum, Math.max(minimum, value));
+      const first = m ? clampBenefit(base * .70) : 0;
+      const later = m ? clampBenefit(base * .60) : 0;
+      output(form, `<div class="big">${m} meses</div><div class="result-grid"><div><small>Primeros 180 días</small>${fmt(first)}</div><div><small>Desde el día 181</small>${fmt(later)}</div><div><small>Mínimo 2026 aplicado</small>${fmt(minimum)}</div><div><small>Máximo 2026 aplicado</small>${fmt(maximum)}</div></div><p class="microcopy">${m ? 'Cuantía bruta orientativa antes de deducciones, aplicando los topes SEPE 2026 según hijos a cargo.' : 'Con menos de 360 días cotizados no se genera esta prestación contributiva; pueden existir otros subsidios.'}</p>`);
     }
 
     if (t === 'vacaciones') {
-      const fd = new FormData(form), a = new Date(fd.get('start')), b = new Date(fd.get('end')), annual = num(form, 'annual'), used = num(form, 'used');
-      let worked = 0;
-      if (!isNaN(a) && !isNaN(b) && b >= a) worked = Math.ceil((b - a) / 86400000) + 1;
-      const gen = worked * annual / 365, p = Math.max(0, gen - used);
-      output(form, `<div class="big">${p.toFixed(1)} días</div><div class="result-grid"><div><small>Días trabajados</small>${worked}</div><div><small>Generados</small>${gen.toFixed(1)}</div><div><small>Disfrutados</small>${used}</div></div>`);
+      const fd = new FormData(form);
+      const a = parseIsoDate(fd.get('start'));
+      const b = parseIsoDate(fd.get('end'));
+      const annual = Math.max(0, num(form, 'annual'));
+      const used = Math.max(0, num(form, 'used'));
+      if (!a || !b || b < a) {
+        output(form, '<div class="big">Fechas no válidas</div><p class="microcopy">Comprueba que la fecha de fin sea igual o posterior a la fecha de inicio.</p>');
+      } else {
+        const worked = Math.floor((b - a) / 86400000) + 1;
+        const gen = accruedVacationDays(a, b, annual);
+        const pending = Math.max(0, gen - used);
+        const excess = Math.max(0, used - gen);
+        output(form, `<div class="big">${pending.toFixed(1)} días</div><div class="result-grid"><div><small>Días naturales del periodo</small>${worked}</div><div><small>Generados</small>${gen.toFixed(1)}</div><div><small>Disfrutados</small>${used}</div>${excess ? `<div><small>Disfrutados por encima de lo generado</small>${excess.toFixed(1)}</div>` : ''}</div><p class="microcopy">El prorrateo respeta los 365 o 366 días de cada año natural. Revisa convenio, interrupciones y criterio de redondeo.</p>`);
+      }
     }
 
     if (t === 'nomina') {
-      const g = num(form, 'gross'), p = num(form, 'pays') || 12, ir = num(form, 'irpf') / 100, ss = num(form, 'ss') / 100, net = g - (g * ir) - (g * ss);
-      output(form, `<div class="big">${fmt(net / p)}</div><div class="result-grid"><div><small>Neto anual</small>${fmt(net)}</div><div><small>IRPF estimado</small>${fmt(g * ir)}</div><div><small>Seg. Social</small>${fmt(g * ss)}</div></div>`);
+      const fd = new FormData(form);
+      const pays = num(form, 'pays') || 12;
+      const grossInput = Math.max(0, num(form, 'gross'));
+      const grossPeriod = fd.get('grossPeriod') || 'annual';
+      const gross = grossPeriod === 'perpay' ? grossInput * pays : grossInput;
+      const contract = fd.get('contract') || 'indefinite';
+      const civilStatus = fd.get('civilStatus') || 'other';
+      const spouseIncome = num(form, 'spouseIncome');
+      const children = Math.max(0, Math.round(num(form, 'children')));
+      const childrenUnder3 = Math.min(children, Math.max(0, Math.round(num(form, 'childrenUnder3'))));
+      const exclusiveChildren = fd.get('exclusiveChildren') === 'yes';
+      const situation = civilStatus === 'married' && spouseIncome <= 1500
+        ? 'two'
+        : civilStatus === 'single' && children > 0 && exclusiveChildren ? 'one' : 'three';
+      const commonWithholding = {
+        situation,
+        children,
+        childrenUnder3,
+        childShare: fd.get('childShare') === 'full' ? 1 : .5,
+        age: Math.max(16, Math.round(num(form, 'age') || 35)),
+        disability: fd.get('disability') || 'none',
+        disabledChildren33: Math.max(0, Math.round(num(form, 'disabledChildren33'))),
+        disabledChildren65: Math.max(0, Math.round(num(form, 'disabledChildren65'))),
+        mobility: fd.get('mobility') === 'yes',
+        ascendants65: Math.max(0, Math.round(num(form, 'ascendants65'))),
+        ascendants75: Math.max(0, Math.round(num(form, 'ascendants75'))),
+        spousePension: Math.max(0, num(form, 'spousePension')),
+        childSupport: Math.max(0, num(form, 'childSupport')),
+        mortgage: fd.get('mortgage') === 'yes',
+        contract
+      };
+      const calculateScenario = annualGross => {
+        const ss = salarySocialSecurity(annualGross, contract);
+        const wh = salaryWithholding({ gross: annualGross, socialSecurity: ss, ...commonWithholding });
+        const manualRate = Math.max(0, Math.min(60, num(form, 'manualIrpf')));
+        const useManual = fd.get('irpfMode') === 'manual';
+        const rate = useManual ? manualRate : wh.rate;
+        const irpf = annualGross * rate / 100;
+        const net = Math.max(0, annualGross - ss - irpf);
+        return { gross: annualGross, socialSecurity: ss, withholding: wh, irpfRate: rate, irpfAnnual: irpf, netAnnual: net, useManual };
+      };
+      const current = calculateScenario(gross);
+      const { socialSecurity, withholding, irpfRate, irpfAnnual, netAnnual, useManual } = current;
+      const averageMonth = netAnnual / 12;
+      const payGross = gross / pays, payIrpf = irpfAnnual / pays;
+      const ordinaryPay = pays === 14 ? payGross - payIrpf - socialSecurity / 12 : netAnnual / 12;
+      const extraPay = pays === 14 ? payGross - payIrpf : 0;
+      const ssRate = gross > 0 ? socialSecurity / gross * 100 : 0;
+      const deductionRate = gross > 0 ? (socialSecurity + irpfAnnual) / gross * 100 : 0;
+      const retainedRate = Math.max(0, 100 - deductionRate);
+      const familyLabels = { one: '1: monoparental', two: '2: cónyuge con rentas ≤ 1.500 €', three: '3: otras situaciones' };
+      const payCards = pays === 14
+        ? `<div><small>Nómina ordinaria aprox.</small>${fmt(ordinaryPay)}</div><div><small>Cada paga extra aprox.</small>${fmt(extraPay)}</div>`
+        : `<div><small>Neto por paga</small>${fmt(netAnnual / 12)}</div>`;
+
+      const step = gross < 20000 ? 2500 : 5000;
+      const scenarioGrosses = [Math.max(12000, gross - step), gross + step];
+      const scenarioCards = scenarioGrosses.map(value => {
+        const scenario = calculateScenario(value);
+        const perPay = scenario.netAnnual / pays;
+        return `<div><small>Con ${fmt(value)} brutos/año</small><strong>${fmt(perPay)} netos/paga</strong><span>${fmt(scenario.netAnnual)} netos/año · IRPF ${scenario.irpfRate.toFixed(2)}%</span></div>`;
+      }).join('');
+
+      output(form, `<div class="big">${fmt(averageMonth)} / mes de media</div>
+        <div class="result-grid">
+          <div><small>Neto anual</small>${fmt(netAnnual)}</div>
+          ${payCards}
+          <div><small>IRPF (${irpfRate.toFixed(2)}%)</small>${fmt(irpfAnnual)}</div>
+          <div><small>Seguridad Social (${ssRate.toFixed(2)}%)</small>${fmt(socialSecurity)}</div>
+          <div><small>Bruto anual calculado</small>${fmt(gross)}</div>
+          <div><small>Te queda del bruto</small>${retainedRate.toFixed(1)}%</div>
+          <div><small>Deducciones totales</small>${deductionRate.toFixed(1)}%</div>
+        </div>
+        <div class="salary-scenarios"><h3>Si negociaras otro bruto</h3><p>Misma situación personal, contrato y número de pagas.</p><div class="salary-scenario-grid">${scenarioCards}</div></div>
+        <p class="microcopy">Situación AEAT aplicada: ${familyLabels[situation]}. ${grossPeriod === 'perpay' ? `El bruto introducido se ha anualizado multiplicándolo por ${pays} pagas. ` : ''}${useManual ? 'Se ha usado el IRPF manual indicado.' : 'IRPF estimado con el algoritmo general de retenciones 2026.'} Las nóminas reales pueden variar por convenio, conceptos no cotizables, retribución irregular, regularizaciones o circunstancias especiales.</p>`);
     }
 
     if (t === 'reduccion') {
-      const s = num(form, 'salary'), c = num(form, 'current'), n = num(form, 'new'), ns = c ? s * (n / c) : 0;
-      output(form, `<div class="big">${fmt(ns)}</div><div class="result-grid"><div><small>Salario actual</small>${fmt(s)}</div><div><small>Pérdida mensual</small>${fmt(s - ns)}</div><div><small>Nueva jornada</small>${n}%</div></div>`);
+      const s = Math.max(0, num(form, 'salary'));
+      const c = num(form, 'current');
+      const n = num(form, 'new');
+      if (c <= 0 || n <= 0 || n > c) {
+        output(form, '<div class="big">Revisa la jornada</div><p class="microcopy">La nueva jornada debe ser mayor que 0 y no puede superar la jornada actual.</p>');
+      } else {
+        const ns = s * (n / c);
+        output(form, `<div class="big">${fmt(ns)}</div><div class="result-grid"><div><small>Salario actual</small>${fmt(s)}</div><div><small>Pérdida mensual</small>${fmt(s - ns)}</div><div><small>Jornada actual</small>${c}%</div><div><small>Nueva jornada</small>${n}%</div></div><p class="microcopy">Proporción directa sobre el salario introducido. Algunos complementos extrasalariales o no vinculados al tiempo pueden no reducirse igual.</p>`);
+      }
     }
 
     if (t === 'coste') {
@@ -68,13 +427,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (t === 'horas') {
-      const s = num(form, 'salary'), w = num(form, 'weekly'), h = num(form, 'hours'), b = num(form, 'bonus') / 100, mh = w * 52 / 12, hour = mh ? s / mh : 0;
-      output(form, `<div class="big">${fmt(hour * (1 + b) * h)}</div><div class="result-grid"><div><small>Valor hora base</small>${fmt(hour)}</div><div><small>Horas extra</small>${h}</div><div><small>Recargo</small>${(b * 100).toFixed(0)}%</div></div>`);
+      const annualSalary = Math.max(0, num(form, 'salary'));
+      const annualHours = Math.max(0, num(form, 'annualHours'));
+      const h = Math.max(0, num(form, 'hours'));
+      const b = Math.max(0, num(form, 'bonus')) / 100;
+      if (!annualSalary || !annualHours) {
+        output(form, '<div class="big">Revisa salario y jornada</div><p class="microcopy">Introduce el salario bruto anual y las horas ordinarias anuales de tu convenio o contrato.</p>');
+      } else {
+        const hour = annualSalary / annualHours;
+        output(form, `<div class="big">${fmt(hour * (1 + b) * h)}</div><div class="result-grid"><div><small>Valor hora ordinaria</small>${fmt(hour)}</div><div><small>Horas extra</small>${h}</div><div><small>Recargo indicado</small>${(b * 100).toFixed(1)}%</div><div><small>Valor por hora extra</small>${fmt(hour * (1 + b))}</div></div><p class="microcopy">El importe no puede ser inferior al valor de la hora ordinaria. Usa el recargo de tu convenio; si no existe, deja 0%.</p>`);
+      }
     }
 
     if (t === 'baja') {
-      const s = num(form, 'salary'), d = num(form, 'days'), v = num(form, 'vacdays'), req = num(form, 'required'), given = num(form, 'given'), ex = num(form, 'extra'), day = s / 30, a = day * d, b = day * v, disc = day * Math.max(0, req - given);
-      output(form, `<div class="big">${fmt(a + b + ex - disc)}</div><div class="result-grid"><div><small>Salario pendiente</small>${fmt(a)}</div><div><small>Vacaciones</small>${fmt(b)}</div><div><small>Descuento preaviso</small>${fmt(disc)}</div></div><p class="microcopy">Estimación bruta. La baja voluntaria normalmente no genera indemnización.</p>`);
+      const fd = new FormData(form);
+      const s = Math.max(0, num(form, 'salary'));
+      const d = Math.max(0, Math.min(31, num(form, 'days')));
+      const v = Math.max(0, num(form, 'vacdays'));
+      const req = Math.max(0, num(form, 'required'));
+      const given = Math.max(0, num(form, 'given'));
+      const extras = Math.max(0, Math.round(num(form, 'extras')));
+      const extraAmount = Math.max(0, num(form, 'extraAmount'));
+      const extraMonths = Math.max(0, Math.min(12, num(form, 'extraMonths')));
+      const prorated = fd.get('prorated') === 'yes';
+      const day = s / 30;
+      const salaryPending = day * d;
+      const vacationPending = day * v;
+      const extraPending = prorated ? 0 : extraAmount * extras * (extraMonths / 12);
+      const discount = day * Math.max(0, req - given);
+      const total = salaryPending + vacationPending + extraPending - discount;
+      output(form, `<div class="big">${fmt(total)}</div><div class="result-grid"><div><small>Salario pendiente</small>${fmt(salaryPending)}</div><div><small>Vacaciones</small>${fmt(vacationPending)}</div><div><small>Pagas extra proporcionales</small>${fmt(extraPending)}</div><div><small>Descuento preaviso</small>${fmt(discount)}</div></div><p class="microcopy">Estimación bruta. La baja voluntaria normalmente no genera indemnización. El descuento por preaviso solo procede si existe obligación aplicable.</p>`);
     }
 
     if (t === 'salariohora') {
@@ -102,11 +484,11 @@ document.addEventListener('DOMContentLoaded', () => {
       let contributed = initial;
       const yearly = [];
       for (let month = 1; month <= months; month++) {
-        if ((month - 1) % contributionEveryMonths === 0) {
+        balance *= (1 + monthlyRate);
+        if (month % contributionEveryMonths === 0) {
           balance += contribution;
           contributed += contribution;
         }
-        balance *= (1 + monthlyRate);
         if (month % 12 === 0) {
           yearly.push({ year: month / 12, balance, contributed });
         }
@@ -116,6 +498,152 @@ document.addEventListener('DOMContentLoaded', () => {
       const bars = yearly.slice(-10).map(y => `<div class="growth-bar-row"><span>Año ${y.year}</span><div class="growth-bar"><i style="width:${Math.max(3, y.balance / maxBalance * 100).toFixed(1)}%"></i></div><strong>${fmt(y.balance)}</strong></div>`).join('');
       const table = yearly.map(y => `<tr><td>${y.year}</td><td>${fmt(y.contributed)}</td><td>${fmt(y.balance - y.contributed)}</td><td>${fmt(y.balance)}</td></tr>`).join('');
       output(form, `<div class="big">${fmt(balance)}</div><div class="result-grid"><div><small>Capital aportado</small>${fmt(contributed)}</div><div><small>Intereses estimados</small>${fmt(interest)}</div><div><small>Plazo</small>${years} años</div></div><div class="growth-bars">${bars}</div><details class="result-table"><summary>Ver tabla año a año</summary><div class="table-wrap"><table><thead><tr><th>Año</th><th>Aportado</th><th>Intereses</th><th>Valor final</th></tr></thead><tbody>${table}</tbody></table></div></details><p class="microcopy">Simulación bruta y orientativa. No incluye impuestos, comisiones, inflación ni variaciones reales de mercado.</p>`);
+    }
+
+    if (t === 'ahorromensual') {
+      const income = Math.max(0, num(form, 'income'));
+      const fixed = Math.max(0, num(form, 'fixed'));
+      const variable = Math.max(0, num(form, 'variable'));
+      const debt = Math.max(0, num(form, 'debt'));
+      const expenses = fixed + variable + debt;
+      const available = income - expenses;
+      const rate = income ? available / income * 100 : 0;
+      const state = available >= 0 ? 'Capacidad de ahorro positiva' : 'Los gastos superan los ingresos';
+      output(form, `<div class="big">${fmt(available)} / mes</div><div class="result-grid"><div><small>Ingresos</small>${fmt(income)}</div><div><small>Gastos totales</small>${fmt(expenses)}</div><div><small>Ahorro anual estimado</small>${fmt(available * 12)}</div><div><small>Tasa de ahorro</small>${rate.toFixed(1)}%</div><div><small>Situación</small>${state}</div></div><p class="microcopy">Presupuesto orientativo. Usa medias de varios meses e incluye gastos irregulares antes de tomar decisiones.</p>`);
+    }
+
+    if (t === 'objetivoahorro') {
+      const target = Math.max(0, num(form, 'target'));
+      const current = Math.max(0, num(form, 'current'));
+      const monthly = Math.max(0, num(form, 'monthly'));
+      const gap = Math.max(0, target - current);
+      if (!target) {
+        output(form, '<div class="big">Indica un objetivo</div><p class="microcopy">El objetivo debe ser superior a 0 €.</p>');
+      } else if (!gap) {
+        output(form, `<div class="big">Objetivo alcanzado</div><div class="result-grid"><div><small>Objetivo</small>${fmt(target)}</div><div><small>Ahorro actual</small>${fmt(current)}</div><div><small>Margen</small>${fmt(current - target)}</div></div>`);
+      } else if (!monthly) {
+        output(form, `<div class="big">Faltan ${fmt(gap)}</div><p class="microcopy">Indica una aportación mensual superior a 0 € para estimar el plazo.</p>`);
+      } else {
+        const months = Math.ceil(gap / monthly);
+        const date = new Date();
+        date.setMonth(date.getMonth() + months);
+        const dateText = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' }).format(date);
+        output(form, `<div class="big">${months} meses</div><div class="result-grid"><div><small>Importe pendiente</small>${fmt(gap)}</div><div><small>Aportación mensual</small>${fmt(monthly)}</div><div><small>Fecha aproximada</small>${dateText}</div><div><small>Total acumulado</small>${fmt(current + monthly * months)}</div></div><p class="microcopy">Cálculo sin rentabilidad ni intereses. La fecha puede variar si cambian las aportaciones.</p>`);
+      }
+    }
+
+    if (t === 'fondoemergencia') {
+      const expenses = Math.max(0, num(form, 'expenses'));
+      const coverage = Math.max(1, Math.round(num(form, 'coverage')));
+      const current = Math.max(0, num(form, 'current'));
+      const monthly = Math.max(0, num(form, 'monthly'));
+      const target = expenses * coverage;
+      const gap = Math.max(0, target - current);
+      const months = monthly ? Math.ceil(gap / monthly) : null;
+      output(form, `<div class="big">${fmt(target)}</div><div class="result-grid"><div><small>Gasto esencial mensual</small>${fmt(expenses)}</div><div><small>Meses de cobertura</small>${coverage}</div><div><small>Fondo actual</small>${fmt(current)}</div><div><small>Importe pendiente</small>${fmt(gap)}</div><div><small>Plazo estimado</small>${gap === 0 ? 'Objetivo cubierto' : months === null ? 'Sin aportación indicada' : `${months} meses`}</div></div><p class="microcopy">Referencia orientativa, no una recomendación financiera. Ajusta la cobertura a la estabilidad de tus ingresos y circunstancias.</p>`);
+    }
+
+    if (t === 'cuotaprestamo') {
+      const principal = Math.max(0, num(form, 'principal'));
+      const annualRate = Math.max(0, num(form, 'rate')) / 100;
+      const years = Math.max(1, Math.round(num(form, 'years')));
+      const months = years * 12;
+      const monthlyRate = annualRate / 12;
+      const payment = monthlyRate ? principal * monthlyRate / (1 - Math.pow(1 + monthlyRate, -months)) : principal / months;
+      const total = payment * months;
+      output(form, `<div class="big">${fmt(payment)} / mes</div><div class="result-grid"><div><small>Capital solicitado</small>${fmt(principal)}</div><div><small>Plazo</small>${months} meses</div><div><small>Total de cuotas</small>${fmt(total)}</div><div><small>Intereses estimados</small>${fmt(total - principal)}</div><div><small>Tipo anual usado</small>${(annualRate * 100).toFixed(2)}%</div></div><p class="microcopy">Sistema de cuota constante. No incluye comisiones, seguros, TAE ni otros gastos del préstamo.</p>`);
+    }
+
+    if (t === 'amortizacionanticipada') {
+      const balance = Math.max(0, num(form, 'balance'));
+      const annualRate = Math.max(0, num(form, 'rate')) / 100;
+      const months = Math.max(1, Math.round(num(form, 'months')));
+      const extra = Math.min(balance, Math.max(0, num(form, 'extra')));
+      const monthlyRate = annualRate / 12;
+      const payment = monthlyRate ? balance * monthlyRate / (1 - Math.pow(1 + monthlyRate, -months)) : balance / months;
+      const newBalance = Math.max(0, balance - extra);
+      const reducedPayment = monthlyRate ? newBalance * monthlyRate / (1 - Math.pow(1 + monthlyRate, -months)) : newBalance / months;
+      const newTerm = !newBalance ? 0 : monthlyRate && payment > newBalance * monthlyRate
+        ? Math.ceil(-Math.log(1 - monthlyRate * newBalance / payment) / Math.log(1 + monthlyRate))
+        : Math.ceil(newBalance / payment);
+      const currentTotal = payment * months;
+      const reducedPaymentTotal = extra + reducedPayment * months;
+      const reducedTermTotal = extra + payment * newTerm;
+      output(form, `<div class="big">${fmt(newBalance)} pendientes</div><div class="result-grid"><div><small>Cuota actual estimada</small>${fmt(payment)}</div><div><small>Nueva cuota, mismo plazo</small>${fmt(reducedPayment)}</div><div><small>Ahorro, reduciendo cuota</small>${fmt(Math.max(0, currentTotal - reducedPaymentTotal))}</div><div><small>Nuevo plazo, misma cuota</small>${newTerm} meses</div><div><small>Meses ahorrados</small>${Math.max(0, months - newTerm)}</div><div><small>Ahorro, reduciendo plazo</small>${fmt(Math.max(0, currentTotal - reducedTermTotal))}</div></div><p class="microcopy">Estimación con tipo constante. No incluye comisión de amortización, seguros ni recalculo exacto de la entidad.</p>`);
+    }
+
+    if (t === 'rentabilidadreal') {
+      const amount = Math.max(0, num(form, 'amount'));
+      const nominal = num(form, 'nominal') / 100;
+      const inflation = num(form, 'inflation') / 100;
+      const tax = Math.max(0, Math.min(100, num(form, 'tax'))) / 100;
+      const years = Math.max(1, Math.round(num(form, 'years')));
+      const netNominal = nominal * (1 - tax);
+      const realAnnual = (1 + netNominal) / (1 + inflation) - 1;
+      const nominalFuture = amount * Math.pow(1 + netNominal, years);
+      const realFuture = nominalFuture / Math.pow(1 + inflation, years);
+      output(form, `<div class="big">${(realAnnual * 100).toFixed(2)}% real anual</div><div class="result-grid"><div><small>Rentabilidad nominal neta</small>${(netNominal * 100).toFixed(2)}%</div><div><small>Inflación usada</small>${(inflation * 100).toFixed(2)}%</div><div><small>Valor nominal final</small>${fmt(nominalFuture)}</div><div><small>Valor real final</small>${fmt(realFuture)}</div><div><small>Ganancia real estimada</small>${fmt(realFuture - amount)}</div><div><small>Plazo</small>${years} años</div></div><p class="microcopy">Simulación simplificada. Los impuestos reales dependen del producto, plusvalías y situación fiscal; la rentabilidad no está garantizada.</p>`);
+    }
+
+    if (t === 'costegato') {
+      const food = Math.max(0, num(form, 'food'));
+      const vetAnnual = Math.max(0, num(form, 'vetAnnual'));
+      const litter = Math.max(0, num(form, 'litter'));
+      const insurance = Math.max(0, num(form, 'insurance'));
+      const other = Math.max(0, num(form, 'other'));
+      const vetMonthly = vetAnnual / 12;
+      const monthly = food + vetMonthly + litter + insurance + other;
+      output(form, `<div class="big">${fmt(monthly)} / mes</div><div class="result-grid"><div><small>Coste anual</small>${fmt(monthly * 12)}</div><div><small>Alimentación</small>${fmt(food)}</div><div><small>Veterinario prorrateado</small>${fmt(vetMonthly)}</div><div><small>Arena</small>${fmt(litter)}</div><div><small>Seguro</small>${fmt(insurance)}</div><div><small>Otros gastos</small>${fmt(other)}</div></div><p class="microcopy">Estimación orientativa. No incluye la compra o adopción inicial ni urgencias veterinarias imprevistas.</p>`);
+    }
+
+    if (t === 'edadgato') {
+      const age = Math.max(0, Math.min(30, num(form, 'age')));
+      const human = age <= 1 ? age * 15 : age <= 2 ? 15 + (age - 1) * 9 : 24 + (age - 2) * 4;
+      const stage = age < 1 ? 'Cachorro' : age < 3 ? 'Adulto joven' : age < 11 ? 'Adulto' : 'Sénior';
+      output(form, `<div class="big">${human.toFixed(1)} años humanos</div><div class="result-grid"><div><small>Edad del gato</small>${age.toFixed(1)} años</div><div><small>Etapa orientativa</small>${stage}</div><div><small>Equivalencia</small>${human.toFixed(1)} años</div></div><p class="microcopy">La equivalencia es divulgativa: envejecimiento, salud y esperanza de vida varían entre gatos.</p>`);
+    }
+
+    if (t === 'racionperro') {
+      const fd = new FormData(form);
+      const weight = Math.max(0, num(form, 'weight'));
+      const density = Math.max(1, num(form, 'density'));
+      const factor = parseFloat(fd.get('factor') || '1.6');
+      const calories = 70 * Math.pow(weight, .75) * factor;
+      const grams = calories / (density / 100);
+      output(form, `<div class="big">${grams.toFixed(0)} g / día</div><div class="result-grid"><div><small>Energía estimada</small>${calories.toFixed(0)} kcal/día</div><div><small>Ración mensual</small>${(grams * 30 / 1000).toFixed(2)} kg</div><div><small>Densidad del alimento</small>${density.toFixed(0)} kcal/100 g</div></div><p class="microcopy">Referencia energética general. Sigue la tabla del fabricante y consulta al veterinario para cachorros, enfermedad, gestación o control de peso.</p>`);
+    }
+
+    if (t === 'raciongato') {
+      const fd = new FormData(form);
+      const weight = Math.max(0, num(form, 'weight'));
+      const density = Math.max(1, num(form, 'density'));
+      const factor = parseFloat(fd.get('factor') || '1.2');
+      const calories = 70 * Math.pow(weight, .75) * factor;
+      const grams = calories / (density / 100);
+      output(form, `<div class="big">${grams.toFixed(0)} g / día</div><div class="result-grid"><div><small>Energía estimada</small>${calories.toFixed(0)} kcal/día</div><div><small>Ración mensual</small>${(grams * 30 / 1000).toFixed(2)} kg</div><div><small>Densidad del alimento</small>${density.toFixed(0)} kcal/100 g</div></div><p class="microcopy">Estimación general. La alimentación húmeda y seca tiene densidades distintas; prioriza etiqueta, condición corporal y criterio veterinario.</p>`);
+    }
+
+    if (t === 'aguaperro') {
+      const fd = new FormData(form);
+      const weight = Math.max(0, num(form, 'weight'));
+      const factor = parseFloat(fd.get('factor') || '1');
+      const minimum = weight * 50 * factor;
+      const maximum = weight * 60 * factor;
+      output(form, `<div class="big">${minimum.toFixed(0)}–${maximum.toFixed(0)} ml / día</div><div class="result-grid"><div><small>Equivalencia mínima</small>${(minimum / 1000).toFixed(2)} litros</div><div><small>Equivalencia máxima</small>${(maximum / 1000).toFixed(2)} litros</div><div><small>Peso indicado</small>${weight.toFixed(1)} kg</div></div><p class="microcopy">No limites el acceso al agua. Un cambio marcado en sed u orina requiere consulta veterinaria.</p>`);
+    }
+
+    if (t === 'duracionpienso') {
+      const bag = Math.max(0, num(form, 'bag'));
+      const daily = Math.max(0, num(form, 'daily'));
+      const price = Math.max(0, num(form, 'price'));
+      if (!daily) {
+        output(form, '<div class="big">Indica la ración diaria</div><p class="microcopy">La cantidad diaria debe ser superior a 0 gramos.</p>');
+      } else {
+        const days = bag * 1000 / daily;
+        const monthlyKg = daily * 30 / 1000;
+        const priceKg = bag ? price / bag : 0;
+        output(form, `<div class="big">${days.toFixed(0)} días</div><div class="result-grid"><div><small>Consumo mensual</small>${monthlyKg.toFixed(2)} kg</div><div><small>Coste por kilo</small>${fmt(priceKg)}</div><div><small>Coste mensual</small>${fmt(monthlyKg * priceKg)}</div><div><small>Sacos al año</small>${(365 / days).toFixed(1)}</div><div><small>Coste anual</small>${fmt(daily * 365 / 1000 * priceKg)}</div></div><p class="microcopy">El resultado supone una ración constante y no considera desperdicio ni cambios de alimentación.</p>`);
+      }
     }
 
 
@@ -145,6 +673,70 @@ document.addEventListener('DOMContentLoaded', () => {
       const media = totalPeso ? sumaPonderada / totalPeso : 0, diferencia = totalPeso - 100;
       const aviso = Math.abs(diferencia) < .01 ? 'Los pesos suman 100%.' : diferencia < 0 ? `Falta ${(100 - totalPeso).toFixed(2)}% para llegar a 100%.` : `Los pesos superan 100% en ${(totalPeso - 100).toFixed(2)}%.`;
       output(form, `<div class="big">${media.toFixed(2)} / 10</div><div class="result-grid"><div><small>Media ponderada</small>${media.toFixed(2)}</div><div><small>Peso total usado</small>${totalPeso.toFixed(2)}%</div><div><small>Revisión de pesos</small>${aviso}</div></div><p class="microcopy">Resultado orientativo. Depende de los criterios oficiales de cada curso, centro o examen.</p>`);
+    }
+
+    if (t === 'notanecesaria') {
+      const current = num(form, 'current'), completed = num(form, 'completed'), target = num(form, 'target');
+      const remaining = 100 - completed;
+      if (completed <= 0 || completed >= 100 || current < 0 || current > 10 || target < 0 || target > 10) {
+        output(form, '<div class="big">Revisa los datos</div><p class="microcopy">El peso ya evaluado debe estar entre 0% y 100%, sin alcanzar el 100%.</p>');
+      } else {
+        const needed = (target - current * completed / 100) / (remaining / 100);
+        const possible = needed <= 10;
+        const already = needed <= 0;
+        const main = already ? 'Objetivo ya alcanzado' : possible ? `${Math.max(0, needed).toFixed(2)} / 10` : 'No alcanzable con esta prueba';
+        output(form, `<div class="big">${main}</div><div class="result-grid"><div><small>Nota actual</small>${current.toFixed(2)}</div><div><small>Peso completado</small>${completed.toFixed(1)}%</div><div><small>Peso restante</small>${remaining.toFixed(1)}%</div><div><small>Objetivo final</small>${target.toFixed(2)}</div></div><p class="microcopy">${already ? 'Mantendrías el objetivo incluso con un 0 en la parte restante.' : possible ? 'Necesitas al menos esa nota en la parte pendiente, suponiendo que todo el peso restante corresponde a ella.' : `Aunque obtuvieras un 10, la nota final máxima sería ${(current * completed / 100 + 10 * remaining / 100).toFixed(2)}.`}</p>`);
+      }
+    }
+
+    if (t === 'examenpenalizacion') {
+      const correct = Math.max(0, Math.round(num(form, 'correct'))), wrong = Math.max(0, Math.round(num(form, 'wrong'))), blank = Math.max(0, Math.round(num(form, 'blank')));
+      const penalty = Math.max(0, num(form, 'penalty')), scale = Math.max(0, num(form, 'scale')) || 10;
+      const total = correct + wrong + blank;
+      if (!total) {
+        output(form, '<div class="big">Añade las respuestas</div><p class="microcopy">La suma de aciertos, errores y respuestas en blanco debe ser mayor que cero.</p>');
+      } else {
+        const net = correct - wrong * penalty, grade = Math.max(0, net / total * scale), percentage = Math.max(0, net / total * 100);
+        output(form, `<div class="big">${grade.toFixed(2)} / ${scale.toFixed(0)}</div><div class="result-grid"><div><small>Aciertos netos</small>${net.toFixed(2)}</div><div><small>Porcentaje neto</small>${percentage.toFixed(2)}%</div><div><small>Total de preguntas</small>${total}</div><div><small>Penalización total</small>${(wrong * penalty).toFixed(2)} aciertos</div></div><p class="microcopy">Cada error resta ${penalty.toFixed(2)} aciertos. La nota mínima se limita a 0; comprueba las reglas concretas de tu examen.</p>`);
+      }
+    }
+
+    if (t === 'mediabachillerato') {
+      const first = num(form, 'first'), second = num(form, 'second');
+      if (first < 0 || first > 10 || second < 0 || second > 10) {
+        output(form, '<div class="big">Revisa las notas</div><p class="microcopy">Las dos medias deben estar entre 0 y 10.</p>');
+      } else {
+        const average = (first + second) / 2;
+        output(form, `<div class="big">${average.toFixed(2)} / 10</div><div class="result-grid"><div><small>Media de 1.º</small>${first.toFixed(2)}</div><div><small>Media de 2.º</small>${second.toFixed(2)}</div><div><small>Diferencia entre cursos</small>${Math.abs(second - first).toFixed(2)}</div><div><small>Media estimada</small>${average.toFixed(2)}</div></div><p class="microcopy">Estimación a partir de las medias de ambos cursos. La calificación oficial del expediente debe calcularla el centro según la normativa aplicable.</p>`);
+      }
+    }
+
+    if (t === 'admisionfp') {
+      const base = num(form, 'base'), extra = Math.max(0, num(form, 'extra')), maximum = Math.max(10, num(form, 'maximum') || 10);
+      if (base < 0 || base > 10 || extra > maximum) {
+        output(form, '<div class="big">Revisa los datos</div><p class="microcopy">La nota base debe estar entre 0 y 10 y los puntos adicionales no pueden superar la escala elegida.</p>');
+      } else {
+        const total = Math.min(maximum, base + extra);
+        output(form, `<div class="big">${total.toFixed(2)} / ${maximum.toFixed(0)}</div><div class="result-grid"><div><small>Nota base</small>${base.toFixed(2)}</div><div><small>Puntos adicionales</small>${extra.toFixed(2)}</div><div><small>Escala máxima</small>${maximum.toFixed(0)}</div><div><small>Nota estimada</small>${total.toFixed(2)}</div></div><p class="microcopy">Introduce solo los puntos adicionales reconocidos por la convocatoria de tu comunidad autónoma. Los criterios de prioridad y desempate no están incluidos.</p>`);
+      }
+    }
+
+    if (t === 'conversorcalificacion') {
+      const obtained = num(form, 'obtained'), maximum = num(form, 'maximum'), scale = num(form, 'scale') || 10, pass = num(form, 'pass') || 50;
+      if (maximum <= 0 || obtained < 0 || obtained > maximum || scale <= 0 || pass < 0 || pass > 100) {
+        output(form, '<div class="big">Revisa los datos</div><p class="microcopy">Los puntos obtenidos no pueden superar el máximo y el porcentaje de aprobado debe estar entre 0% y 100%.</p>');
+      } else {
+        const percentage = obtained / maximum * 100, grade = obtained / maximum * scale;
+        output(form, `<div class="big">${grade.toFixed(2)} / ${scale.toFixed(0)}</div><div class="result-grid"><div><small>Porcentaje</small>${percentage.toFixed(2)}%</div><div><small>Puntos</small>${obtained.toFixed(2)} de ${maximum.toFixed(2)}</div><div><small>Umbral de aprobado</small>${pass.toFixed(1)}%</div><div><small>Resultado</small>${percentage >= pass ? 'Aprobado según el umbral' : 'Por debajo del umbral'}</div></div><p class="microcopy">Conversión proporcional. No aplica redondeos, tramos ni criterios especiales del centro o convocatoria.</p>`);
+      }
+    }
+
+    if (t === 'planestudio') {
+      const hours = Math.max(0, num(form, 'hours')), days = Math.max(1, Math.round(num(form, 'days'))), rest = Math.max(0, Math.min(6, Math.round(num(form, 'rest')))), sessions = Math.max(1, Math.round(num(form, 'sessions')));
+      const fullWeeks = Math.floor(days / 7), extraDays = days % 7;
+      const studyDays = Math.max(1, days - fullWeeks * rest - Math.min(rest, extraDays));
+      const daily = hours / studyDays, perSession = daily / sessions;
+      output(form, `<div class="big">${daily.toFixed(2)} h / día de estudio</div><div class="result-grid"><div><small>Días efectivos</small>${studyDays}</div><div><small>Sesiones totales</small>${studyDays * sessions}</div><div><small>Tiempo por sesión</small>${Math.round(perSession * 60)} min</div><div><small>Días de descanso estimados</small>${days - studyDays}</div></div><p class="microcopy">Reparto uniforme. Reserva margen para repasos e imprevistos y ajusta la carga si una sesión resulta demasiado larga.</p>`);
     }
 
     if (t === 'costeperro') {
@@ -179,7 +771,163 @@ document.addEventListener('DOMContentLoaded', () => {
         output(form, `<div class="big">${y} años, ${m} meses y ${d} días</div><div class="result-grid"><div><small>Años</small>${y}</div><div><small>Meses</small>${m}</div><div><small>Días totales</small>${total}</div></div>`);
       }
     }
+
+    if (t === 'hogaragua') {
+      const people = Math.max(1, Math.round(num(form, 'people'))), litres = Math.max(0, num(form, 'litres'));
+      const days = Math.max(1, num(form, 'days')), price = Math.max(0, num(form, 'price')), fixed = Math.max(0, num(form, 'fixed'));
+      const cubicMetres = people * litres * days / 1000, monthlyCost = cubicMetres * price + fixed;
+      output(form, `<div class="big">${fmt(monthlyCost)} / mes</div><div class="result-grid"><div><small>Consumo mensual</small>${cubicMetres.toFixed(2)} m³</div><div><small>Consumo anual</small>${(cubicMetres * 12).toFixed(2)} m³</div><div><small>Coste variable</small>${fmt(cubicMetres * price)}</div><div><small>Cuota fija</small>${fmt(fixed)}</div><div><small>Coste anual</small>${fmt(monthlyCost * 12)}</div><div><small>Personas</small>${people}</div></div><p class="microcopy">Estimación basada en el consumo indicado. La factura real puede incluir bloques, cánones, saneamiento, impuestos y mínimos de consumo.</p>`);
+    }
+
+    if (t === 'hogarcalefaccion') {
+      const power = Math.max(0, num(form, 'power')), hours = Math.max(0, num(form, 'hours')), days = Math.max(0, num(form, 'days'));
+      const price = Math.max(0, num(form, 'price')), load = Math.max(0, Math.min(100, num(form, 'load'))) / 100;
+      const monthlyKwh = power * hours * days * load, monthlyCost = monthlyKwh * price;
+      output(form, `<div class="big">${fmt(monthlyCost)} / mes</div><div class="result-grid"><div><small>Consumo mensual</small>${monthlyKwh.toFixed(2)} kWh</div><div><small>Coste diario</small>${fmt(days ? monthlyCost / days : 0)}</div><div><small>Coste mensual</small>${fmt(monthlyCost)}</div><div><small>Horas de uso</small>${(hours * days).toFixed(1)} h</div><div><small>Factor de funcionamiento</small>${(load * 100).toFixed(0)}%</div><div><small>Coste 5 meses</small>${fmt(monthlyCost * 5)}</div></div><p class="microcopy">No incluye cuotas fijas, impuestos ni pérdidas que no estén reflejadas en el factor de funcionamiento.</p>`);
+    }
+
+    if (t === 'hogarstandby') {
+      const watts = Math.max(0, num(form, 'watts')), devices = Math.max(1, Math.round(num(form, 'devices')));
+      const hours = Math.max(0, Math.min(24, num(form, 'hours'))), price = Math.max(0, num(form, 'price'));
+      const yearlyKwh = watts * devices / 1000 * hours * 365, yearlyCost = yearlyKwh * price;
+      output(form, `<div class="big">${fmt(yearlyCost)} / año</div><div class="result-grid"><div><small>Consumo diario</small>${(yearlyKwh / 365).toFixed(3)} kWh</div><div><small>Consumo mensual</small>${(yearlyKwh / 12).toFixed(2)} kWh</div><div><small>Consumo anual</small>${yearlyKwh.toFixed(2)} kWh</div><div><small>Coste mensual</small>${fmt(yearlyCost / 12)}</div><div><small>Coste anual</small>${fmt(yearlyCost)}</div><div><small>Aparatos</small>${devices}</div></div><p class="microcopy">Para mejorar la estimación, utiliza la potencia en espera indicada por el fabricante o medida con un medidor de consumo.</p>`);
+    }
+
+    if (t === 'hogarpintura') {
+      const perimeter = Math.max(0, num(form, 'perimeter')), height = Math.max(0, num(form, 'height'));
+      const openings = Math.max(0, num(form, 'openings')), coats = Math.max(1, Math.round(num(form, 'coats')));
+      const coverage = Math.max(.1, num(form, 'coverage')), waste = Math.max(0, num(form, 'waste')) / 100;
+      const price = Math.max(0, num(form, 'price')), area = Math.max(0, perimeter * height - openings);
+      const litres = area * coats / coverage * (1 + waste), cost = litres * price;
+      output(form, `<div class="big">${litres.toFixed(2)} litros</div><div class="result-grid"><div><small>Superficie neta</small>${area.toFixed(2)} m²</div><div><small>Manos</small>${coats}</div><div><small>Rendimiento</small>${coverage.toFixed(1)} m²/L</div><div><small>Margen extra</small>${(waste * 100).toFixed(0)}%</div><div><small>Coste estimado</small>${fmt(cost)}</div><div><small>Litros redondeados</small>${Math.ceil(litres)} L</div></div><p class="microcopy">La absorción de la pared, el color anterior, la técnica y el producto pueden modificar el rendimiento real.</p>`);
+    }
+
+    if (t === 'hogarsuelo') {
+      const length = Math.max(0, num(form, 'length')), width = Math.max(0, num(form, 'width'));
+      const tileWidth = Math.max(.1, num(form, 'tileWidth')) / 100, tileHeight = Math.max(.1, num(form, 'tileHeight')) / 100;
+      const waste = Math.max(0, num(form, 'waste')) / 100, perBox = Math.max(1, Math.round(num(form, 'perBox'))), boxPrice = Math.max(0, num(form, 'boxPrice'));
+      const area = length * width, purchaseArea = area * (1 + waste), tileArea = tileWidth * tileHeight;
+      const tiles = Math.ceil(purchaseArea / tileArea), boxes = Math.ceil(tiles / perBox), boughtTiles = boxes * perBox;
+      output(form, `<div class="big">${boxes} cajas</div><div class="result-grid"><div><small>Superficie</small>${area.toFixed(2)} m²</div><div><small>Con margen</small>${purchaseArea.toFixed(2)} m²</div><div><small>Piezas necesarias</small>${tiles}</div><div><small>Piezas compradas</small>${boughtTiles}</div><div><small>Sobrantes estimadas</small>${Math.max(0, boughtTiles - tiles)}</div><div><small>Coste estimado</small>${fmt(boxes * boxPrice)}</div></div><p class="microcopy">Comprueba que todas las cajas correspondan al mismo lote. Los cortes complejos o la colocación diagonal pueden exigir más margen.</p>`);
+    }
+
+    if (t === 'hogarac') {
+      const power = Math.max(0, num(form, 'power')), hours = Math.max(0, num(form, 'hours')), days = Math.max(0, num(form, 'days'));
+      const months = Math.max(1, Math.min(12, Math.round(num(form, 'months')))), price = Math.max(0, num(form, 'price'));
+      const load = Math.max(0, Math.min(100, num(form, 'load'))) / 100, monthlyKwh = power * hours * days * load;
+      const monthlyCost = monthlyKwh * price, seasonCost = monthlyCost * months;
+      output(form, `<div class="big">${fmt(monthlyCost)} / mes</div><div class="result-grid"><div><small>Consumo mensual</small>${monthlyKwh.toFixed(2)} kWh</div><div><small>Coste diario</small>${fmt(days ? monthlyCost / days : 0)}</div><div><small>Coste mensual</small>${fmt(monthlyCost)}</div><div><small>Meses de uso</small>${months}</div><div><small>Consumo temporada</small>${(monthlyKwh * months).toFixed(2)} kWh</div><div><small>Coste temporada</small>${fmt(seasonCost)}</div></div><p class="microcopy">Usa la potencia eléctrica absorbida, no la potencia frigorífica. Los equipos inverter no consumen continuamente al máximo.</p>`);
+    }
+
+    if (t === 'hogarcomparador') {
+      const fd = new FormData(form), years = Math.max(1, Math.round(num(form, 'years'))), hours = Math.max(0, num(form, 'hours'));
+      const days = Math.max(0, Math.min(365, num(form, 'days'))), energyPrice = Math.max(0, num(form, 'energyPrice'));
+      const purchaseA = Math.max(0, num(form, 'purchaseA')), wattsA = Math.max(0, num(form, 'wattsA'));
+      const purchaseB = Math.max(0, num(form, 'purchaseB')), wattsB = Math.max(0, num(form, 'wattsB'));
+      const energyA = wattsA / 1000 * hours * days * years * energyPrice, energyB = wattsB / 1000 * hours * days * years * energyPrice;
+      const totalA = purchaseA + energyA, totalB = purchaseB + energyB, winner = totalA <= totalB ? (fd.get('nameA') || 'Opción A') : (fd.get('nameB') || 'Opción B');
+      const saving = Math.abs(totalA - totalB);
+      output(form, `<div class="big">Conviene ${winner}</div><div class="result-grid"><div><small>Total opción A</small>${fmt(totalA)}</div><div><small>Energía opción A</small>${fmt(energyA)}</div><div><small>Total opción B</small>${fmt(totalB)}</div><div><small>Energía opción B</small>${fmt(energyB)}</div><div><small>Diferencia</small>${fmt(saving)}</div><div><small>Periodo comparado</small>${years} años</div></div><p class="microcopy">Compara compra y electricidad. No incluye mantenimiento, reparaciones, financiación, vida útil ni cambios futuros del precio energético.</p>`);
+    }
+
+    if (t === 'consumodescuento') {
+      const price = Math.max(0, num(form, 'price')), first = Math.max(0, Math.min(100, num(form, 'first'))) / 100;
+      const second = Math.max(0, Math.min(100, num(form, 'second'))) / 100, units = Math.max(1, Math.round(num(form, 'units')));
+      const unitFinal = price * (1 - first) * (1 - second), total = unitFinal * units, saving = (price - unitFinal) * units;
+      const effective = price ? (1 - unitFinal / price) * 100 : 0;
+      output(form, `<div class="big">${fmt(total)}</div><div class="result-grid"><div><small>Precio final por unidad</small>${fmt(unitFinal)}</div><div><small>Ahorro total</small>${fmt(saving)}</div><div><small>Descuento efectivo</small>${effective.toLocaleString('es-ES', { maximumFractionDigits: 2 })}%</div><div><small>Precio original total</small>${fmt(price * units)}</div><div><small>Unidades</small>${units}</div><div><small>Segundo descuento</small>${(second * 100).toLocaleString('es-ES', { maximumFractionDigits: 2 })}%</div></div><p class="microcopy">Los descuentos sucesivos se aplican uno después del otro; no se suman directamente.</p>`);
+    }
+
+    if (t === 'consumoiva') {
+      const fd = new FormData(form), amount = Math.max(0, num(form, 'amount')), rate = Math.max(0, num(form, 'rate')) / 100;
+      const mode = fd.get('mode') || 'add';
+      const base = mode === 'add' ? amount : amount / (1 + rate), total = mode === 'add' ? amount * (1 + rate) : amount, tax = total - base;
+      output(form, `<div class="big">${mode === 'add' ? fmt(total) : fmt(base)}</div><div class="result-grid"><div><small>Base sin IVA</small>${fmt(base)}</div><div><small>IVA</small>${fmt(tax)}</div><div><small>Total con IVA</small>${fmt(total)}</div><div><small>Tipo aplicado</small>${(rate * 100).toLocaleString('es-ES', { maximumFractionDigits: 2 })}%</div></div><p class="microcopy">Cálculo matemático orientativo. Comprueba el tipo aplicable al producto o servicio concreto.</p>`);
+    }
+
+    if (t === 'consumovariacion') {
+      const oldValue = num(form, 'oldValue'), newValue = num(form, 'newValue'), difference = newValue - oldValue;
+      const calculable = oldValue !== 0;
+      const percent = calculable ? difference / Math.abs(oldValue) * 100 : null;
+      const direction = difference > 0 ? 'Subida' : difference < 0 ? 'Bajada' : 'Sin variación';
+      const percentLabel = calculable ? `${Math.abs(percent).toLocaleString('es-ES', { maximumFractionDigits: 2 })}%` : 'no calculable';
+      const relativeLabel = calculable ? `${percent.toLocaleString('es-ES', { maximumFractionDigits: 2 })}%` : 'No calculable desde 0';
+      output(form, `<div class="big">${direction}: ${percentLabel}</div><div class="result-grid"><div><small>Valor anterior</small>${fmt(oldValue)}</div><div><small>Valor nuevo</small>${fmt(newValue)}</div><div><small>Diferencia</small>${fmt(difference)}</div><div><small>Variación relativa</small>${relativeLabel}</div></div><p class="microcopy">${calculable ? 'La variación porcentual compara el cambio con el valor inicial.' : 'No existe una variación porcentual finita cuando el valor inicial es cero.'}</p>`);
+    }
+
+    if (t === 'consumooferta') {
+      const price = Math.max(0, num(form, 'price')), needed = Math.max(1, Math.round(num(form, 'needed')));
+      const take = Math.max(1, Math.round(num(form, 'take'))), pay = Math.max(0, Math.min(take, Math.round(num(form, 'pay'))));
+      const discount = Math.max(0, Math.min(100, num(form, 'discount'))) / 100;
+      const fullPacks = Math.floor(needed / take), remainder = needed % take;
+      const offerCost = (fullPacks * pay + remainder) * price, discountCost = needed * price * (1 - discount);
+      const winner = offerCost < discountCost ? `Lleva ${take} y paga ${pay}` : discountCost < offerCost ? `Descuento del ${(discount * 100).toFixed(0)}%` : 'Ambas ofertas';
+      output(form, `<div class="big">Conviene: ${winner}</div><div class="result-grid"><div><small>Oferta por unidades</small>${fmt(offerCost)}</div><div><small>Oferta por descuento</small>${fmt(discountCost)}</div><div><small>Diferencia</small>${fmt(Math.abs(offerCost - discountCost))}</div><div><small>Unidades necesarias</small>${needed}</div><div><small>Sin oferta</small>${fmt(needed * price)}</div><div><small>Packs completos</small>${fullPacks}</div></div><p class="microcopy">El cálculo supone que las unidades restantes fuera de los packs se pagan a precio normal.</p>`);
+    }
+
+    if (t === 'consumocosteuso') {
+      const purchase = Math.max(0, num(form, 'purchase')), annual = Math.max(0, num(form, 'annual'));
+      const usesMonth = Math.max(0, num(form, 'usesMonth')), years = Math.max(1, num(form, 'years')), resale = Math.max(0, num(form, 'resale'));
+      const totalUses = usesMonth * 12 * years, totalCost = Math.max(0, purchase + annual * years - resale), perUse = totalUses ? totalCost / totalUses : 0;
+      output(form, `<div class="big">${fmt(perUse)} / uso</div><div class="result-grid"><div><small>Coste total</small>${fmt(totalCost)}</div><div><small>Usos totales</small>${totalUses.toFixed(0)}</div><div><small>Compra</small>${fmt(purchase)}</div><div><small>Mantenimiento</small>${fmt(annual * years)}</div><div><small>Valor de reventa</small>${fmt(resale)}</div><div><small>Coste mensual medio</small>${fmt(totalCost / (years * 12))}</div></div><p class="microcopy">No incluye inflación, financiación ni costes imprevistos que no hayas incorporado al mantenimiento.</p>`);
+    }
+
+    if (t === 'consumosuscripcion') {
+      const monthly = Math.max(0, num(form, 'monthly')), annual = Math.max(0, num(form, 'annual'));
+      const setup = Math.max(0, num(form, 'setup')), months = Math.max(1, Math.round(num(form, 'months'))), users = Math.max(1, Math.round(num(form, 'users')));
+      const monthlyTotal = monthly * months + setup, annualCycles = Math.ceil(months / 12), annualTotal = annual * annualCycles + setup;
+      const winner = monthlyTotal <= annualTotal ? 'Plan mensual' : 'Plan anual', best = Math.min(monthlyTotal, annualTotal);
+      output(form, `<div class="big">Conviene ${winner}</div><div class="result-grid"><div><small>Plan mensual</small>${fmt(monthlyTotal)}</div><div><small>Plan anual</small>${fmt(annualTotal)}</div><div><small>Ahorro</small>${fmt(Math.abs(monthlyTotal - annualTotal))}</div><div><small>Coste por usuario/mes</small>${fmt(best / months / users)}</div><div><small>Periodo</small>${months} meses</div><div><small>Usuarios</small>${users}</div></div><p class="microcopy">El plan anual se cobra por ciclos completos; revisa cancelación, renovación y posibles impuestos antes de contratar.</p>`);
+    }
+
+    if (t === 'consumoviaje') {
+      const distance = Math.max(0, num(form, 'distance')), consumption = Math.max(0, num(form, 'consumption'));
+      const fuelPrice = Math.max(0, num(form, 'fuelPrice')), tolls = Math.max(0, num(form, 'tolls')), people = Math.max(1, Math.round(num(form, 'people')));
+      const litres = distance * consumption / 100, fuelCost = litres * fuelPrice, total = fuelCost + tolls;
+      output(form, `<div class="big">${fmt(total)} en total</div><div class="result-grid"><div><small>Combustible</small>${fmt(fuelCost)}</div><div><small>Litros estimados</small>${litres.toFixed(2)} L</div><div><small>Peajes y extras</small>${fmt(tolls)}</div><div><small>Coste por persona</small>${fmt(total / people)}</div><div><small>Coste por 100 km</small>${fmt(distance ? total / distance * 100 : 0)}</div><div><small>Distancia</small>${distance.toFixed(1)} km</div></div><p class="microcopy">Usa la distancia total, incluida la vuelta. El consumo real cambia con tráfico, carga, velocidad, clima y estilo de conducción.</p>`);
+    }
   }));
+
+  const poolForm = document.getElementById('pool-form');
+  if (poolForm) {
+    const poolResult = document.getElementById('pool-result');
+    const lengthField = document.getElementById('length-field');
+    const widthField = document.getElementById('width-field');
+    const diameterField = document.getElementById('diameter-field');
+    const poolNumber = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 2 });
+    const calculatePool = e => {
+      if (e) e.preventDefault();
+      const data = new FormData(poolForm);
+      const shape = data.get('shape');
+      const depth = Number(data.get('depth'));
+      const price = Number(data.get('price'));
+      let volume = 0;
+      if (shape === 'round') {
+        const diameter = Number(data.get('diameter'));
+        volume = Math.PI * Math.pow(diameter / 2, 2) * depth;
+      } else {
+        const length = Number(data.get('length'));
+        const width = Number(data.get('width'));
+        volume = length * width * depth * (shape === 'oval' ? 0.785 : 1);
+      }
+      poolResult.classList.add('show');
+      if (!(volume > 0) || price < 0) {
+        poolResult.innerHTML = '<p>Revisa los datos.</p>';
+        return;
+      }
+      poolResult.innerHTML = `<h3>Resultado</h3><p><strong>Volumen:</strong> ${poolNumber.format(volume)} m³</p><p><strong>Capacidad:</strong> ${Math.round(volume * 1000).toLocaleString('es-ES')} L</p><p><strong>Coste de agua estimado:</strong> ${fmt(volume * price)}</p>`;
+    };
+    const updatePoolShape = () => {
+      const round = new FormData(poolForm).get('shape') === 'round';
+      lengthField.hidden = round;
+      widthField.hidden = round;
+      diameterField.hidden = !round;
+      calculatePool();
+    };
+    poolForm.addEventListener('submit', calculatePool);
+    poolForm.elements.namedItem('shape').addEventListener('change', updatePoolShape);
+    updatePoolShape();
+  }
 
   document.querySelectorAll('[data-add-row]').forEach(btn => btn.addEventListener('click', () => {
     const form = btn.closest('form'), rows = form?.querySelector('[data-weighted-rows]');
@@ -233,10 +981,7 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('cl_consent', ok ? 'accepted' : 'rejected');
       if (window.gtag) {
         gtag('consent', 'update', {
-          ad_storage: ok ? 'granted' : 'denied',
-          analytics_storage: ok ? 'granted' : 'denied',
-          ad_user_data: ok ? 'granted' : 'denied',
-          ad_personalization: ok ? 'granted' : 'denied'
+          analytics_storage: ok ? 'granted' : 'denied'
         });
       }
       hide();
